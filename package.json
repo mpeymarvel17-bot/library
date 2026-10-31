@@ -1,0 +1,13 @@
+{
+  "name": "simple-library-app",
+  "version": "1.0.0",
+  "description": "Aplikasi perpustakaan sederhana dengan Node.js, Express, dan Firestore di Vercel",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "firebase-admin": "^12.2.0"
+  }
+}

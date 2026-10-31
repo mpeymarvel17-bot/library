@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Perpustakaan Sederhana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">📚 Perpustakaan Digital</h1>
+            <p class="text-gray-600">Kelola daftar buku Anda dengan Node.js, Vercel, & Firebase Firestore</p>
+        </header>
+
+        <!-- Form Tambah Buku -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Tambah Buku Baru</h2>
+            <form id="bookForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="text" id="title" placeholder="Judul Buku" required class="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input type="text" id="author" placeholder="Penulis" required class="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input type="number" id="year" placeholder="Tahun Terbit" class="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700 transition">Simpan Buku</button>
+            </form>
+        </div>
+
+        <!-- Daftar Buku -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Daftar Koleksi Buku</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-200 text-gray-700">
+                            <th class="py-3 px-4 border-b">Judul</th>
+                            <th class="py-3 px-4 border-b">Penulis</th>
+                            <th class="py-3 px-4 border-b">Tahun</th>
+                            <th class="py-3 px-4 border-b text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookTableBody">
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-gray-500">Memuat data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const bookForm = document.getElementById('bookForm');
+        const bookTableBody = document.getElementById('bookTableBody');
+
+        async function fetchBooks() {
+            try {
+                const response = await fetch('/api/books');
+                const result = await response.json();
+                if (result.success) {
+                    renderBooks(result.data);
+                }
+            } catch (error) {
+                console.error('Gagal memuat buku:', error);
+            }
+        }
+
+        function renderBooks(books) {
+            if (books.length === 0) {
+                bookTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Belum ada buku tersedia.</td></tr>`;
+                return;
+            }
+
+            bookTableBody.innerHTML = books.map(book => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-3 px-4">${escapeHtml(book.title)}</td>
+                    <td class="py-3 px-4">${escapeHtml(book.author)}</td>
+                    <td class="py-3 px-4">${escapeHtml(String(book.year))}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="deleteBook('${book.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">Hapus</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        bookForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('title').value;
+            const author = document.getElementById('author').value;
+            const year = document.getElementById('year').value;
+
+            try {
+                const response = await fetch('/api/books', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, author, year })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    bookForm.reset();
+                    fetchBooks();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Gagal menambah buku:', error);
+            }
+        });
+
+        async function deleteBook(id) {
+            if (!confirm('Apakah Anda yakin ingin menghapus buku ini?')) return;
+            try {
+                const response = await fetch(`/api/books/${id}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    fetchBooks();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Gagal menghapus buku:', error);
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        fetchBooks();
+    </script>
+</body>
+</html>
