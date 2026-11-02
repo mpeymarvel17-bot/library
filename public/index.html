@@ -3,130 +3,818 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Perpustakaan Sederhana</title>
+    <title>Sistem Informasi Perpustakaan</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 font-sans leading-normal tracking-normal">
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">📚 Perpustakaan Digital</h1>
-            <p class="text-gray-600">Kelola daftar buku Anda dengan Node.js, Vercel, & Firebase Firestore</p>
-        </header>
-
-        <!-- Form Tambah Buku -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700">Tambah Buku Baru</h2>
-            <form id="bookForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="text" id="title" placeholder="Judul Buku" required class="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <input type="text" id="author" placeholder="Penulis" required class="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <input type="number" id="year" placeholder="Tahun Terbit" class="border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
-                <button type="submit" class="md:col-span-3 bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700 transition">Simpan Buku</button>
-            </form>
-        </div>
-
-        <!-- Daftar Buku -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700">Daftar Koleksi Buku</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-200 text-gray-700">
-                            <th class="py-3 px-4 border-b">Judul</th>
-                            <th class="py-3 px-4 border-b">Penulis</th>
-                            <th class="py-3 px-4 border-b">Tahun</th>
-                            <th class="py-3 px-4 border-b text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bookTableBody">
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-gray-500">Memuat data...</td>
-                        </tr>
-                    </tbody>
-                </table>
+<body class="bg-slate-100 font-sans text-slate-700 antialiased">
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="mx-auto max-w-6xl px-4 py-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800">📚 Perpustakaan Digital</h1>
+                    <p class="text-sm text-slate-500">Katalog buku, anggota, peminjaman, dan laporan</p>
+                </div>
+                <span id="storageBadge" class="hidden text-xs rounded-full bg-amber-100 text-amber-800 px-3 py-1"></span>
             </div>
+            <nav class="mt-4 flex flex-wrap gap-2" id="tabNav">
+                <button data-tab="catalog" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 text-white">Katalog Buku</button>
+                <button data-tab="members" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700">Anggota</button>
+                <button data-tab="loans" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700">Peminjaman &amp; Pengembalian</button>
+                <button data-tab="reports" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700">Laporan</button>
+            </nav>
         </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-6 space-y-6">
+        <!-- ================= KATALOG BUKU ================= -->
+        <section id="tab-catalog" class="tab-panel space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800">Katalog Buku</h2>
+                        <p class="text-sm text-slate-500">Tambah, ubah, dan hapus koleksi buku beserta stoknya.</p>
+                    </div>
+                    <button id="btnAddBook" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">+ Tambah Buku</button>
+                </div>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <input id="bookSearch" type="search" placeholder="Cari judul, penulis, atau kategori..."
+                        class="md:col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                    <select id="bookCategoryFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                        <option value="">Semua kategori</option>
+                    </select>
+                    <select id="bookAvailabilityFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                        <option value="">Semua ketersediaan</option>
+                        <option value="available">Tersedia</option>
+                        <option value="empty">Stok habis</option>
+                    </select>
+                </div>
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="px-4 py-3">Judul / Penulis</th>
+                                <th class="px-4 py-3">Kategori</th>
+                                <th class="px-4 py-3">Tahun</th>
+                                <th class="px-4 py-3">Tersedia / Stok</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= ANGGOTA ================= -->
+        <section id="tab-members" class="tab-panel hidden space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800">Data Anggota</h2>
+                        <p class="text-sm text-slate-500">Pendaftaran dan pengelolaan anggota perpustakaan.</p>
+                    </div>
+                    <button id="btnAddMember" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">+ Daftarkan Anggota</button>
+                </div>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <input id="memberSearch" type="search" placeholder="Cari nama, nomor anggota, atau kontak..."
+                        class="md:col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                    <select id="memberTypeFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                        <option value="">Semua tipe</option>
+                        <option value="Siswa">Siswa</option>
+                        <option value="Mahasiswa">Mahasiswa</option>
+                        <option value="Umum">Umum</option>
+                    </select>
+                </div>
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="px-4 py-3">Nama</th>
+                                <th class="px-4 py-3">No. Anggota</th>
+                                <th class="px-4 py-3">Tipe</th>
+                                <th class="px-4 py-3">Kontak</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memberTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PEMINJAMAN ================= -->
+        <section id="tab-loans" class="tab-panel hidden space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-slate-800">Catat Peminjaman</h2>
+                <p class="text-sm text-slate-500 mb-4">Batas waktu pinjam dihitung otomatis dari tanggal peminjaman.</p>
+                <form id="loanForm" class="grid grid-cols-1 gap-4 md:grid-cols-12">
+                    <div class="md:col-span-5">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Buku</label>
+                        <select id="loanBook" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></select>
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Anggota</label>
+                        <select id="loanMember" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></select>
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Lama pinjam (hari)</label>
+                        <input id="loanDays" type="number" min="1" max="30" value="7" required
+                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                    </div>
+                    <div class="md:col-span-12 flex flex-wrap items-center justify-between gap-3">
+                        <p id="loanDuePreview" class="text-sm text-slate-500"></p>
+                        <button type="submit" class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700">Simpan Peminjaman</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800">Transaksi Peminjaman</h2>
+                        <p class="text-sm text-slate-500">Catat pengembalian dan lihat denda keterlambatan.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <input id="loanSearch" type="search" placeholder="Cari buku atau anggota..."
+                            class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                        <select id="loanStatusFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                            <option value="">Semua status</option>
+                            <option value="borrowed">Sedang dipinjam</option>
+                            <option value="overdue">Terlambat</option>
+                            <option value="returned">Sudah dikembalikan</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="px-4 py-3">Buku</th>
+                                <th class="px-4 py-3">Anggota</th>
+                                <th class="px-4 py-3">Pinjam</th>
+                                <th class="px-4 py-3">Jatuh Tempo</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Denda</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loanTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= LAPORAN ================= -->
+        <section id="tab-reports" class="tab-panel hidden space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800">Rekapitulasi Perpustakaan</h2>
+                        <p id="reportMeta" class="text-sm text-slate-500"></p>
+                    </div>
+                    <button id="btnRefreshReport" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Muat Ulang</button>
+                </div>
+                <div id="summaryCards" class="grid grid-cols-2 gap-4 md:grid-cols-4"></div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4">Buku Terpopuler</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="px-4 py-3 w-12">#</th>
+                                <th class="px-4 py-3">Judul</th>
+                                <th class="px-4 py-3">Penulis</th>
+                                <th class="px-4 py-3">Total Dipinjam</th>
+                                <th class="px-4 py-3">Sedang Dipinjam</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topBooksBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4">Rekap Denda Keterlambatan</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="px-4 py-3">Buku</th>
+                                <th class="px-4 py-3">Anggota</th>
+                                <th class="px-4 py-3">Jatuh Tempo</th>
+                                <th class="px-4 py-3">Terlambat</th>
+                                <th class="px-4 py-3">Denda</th>
+                                <th class="px-4 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="finesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4">Rekap 6 Bulan Terakhir</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600">
+                            <tr>
+                                <th class="px-4 py-3">Bulan</th>
+                                <th class="px-4 py-3">Peminjaman</th>
+                                <th class="px-4 py-3">Pengembalian</th>
+                                <th class="px-4 py-3">Denda Terkumpul</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ================= MODAL ================= -->
+    <div id="modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 p-4">
+        <div id="modalBox" class="mx-auto mt-10 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"></div>
     </div>
 
-    <script>
-        const bookForm = document.getElementById('bookForm');
-        const bookTableBody = document.getElementById('bookTableBody');
+    <div id="toast" class="pointer-events-none fixed bottom-6 right-6 z-[60] space-y-2"></div>
 
-        async function fetchBooks() {
-            try {
-                const response = await fetch('/api/books');
-                const result = await response.json();
-                if (result.success) {
-                    renderBooks(result.data);
+    <script>
+        const state = {
+            books: [],
+            bookOptions: [],
+            members: [],
+            memberOptions: [],
+            loans: [],
+            settings: { loanDays: 7, maxLoanDays: 30, finePerDay: 1000 }
+        };
+
+        // ------------------------------ Utilitas ------------------------------
+
+        const esc = (value) => String(value === undefined || value === null ? '' : value)
+            .replace(/[&<>"']/g, (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[tag]));
+
+        const rupiah = (value) => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+
+        function formatDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function showToast(message, type = 'success') {
+            const colors = {
+                success: 'bg-emerald-600',
+                error: 'bg-red-600',
+                info: 'bg-slate-800'
+            };
+            const node = document.createElement('div');
+            node.className = 'pointer-events-auto rounded-lg px-4 py-3 text-sm text-white shadow-lg ' + (colors[type] || colors.info);
+            node.textContent = message;
+            document.getElementById('toast').appendChild(node);
+            setTimeout(() => node.remove(), 4000);
+        }
+
+        async function api(url, options = {}) {
+            const response = await fetch(url, {
+                headers: { 'Content-Type': 'application/json' },
+                ...options
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok || body.success === false) {
+                throw new Error(body.message || 'Terjadi kesalahan pada server.');
+            }
+            return body;
+        }
+
+        function emptyRow(colspan, message) {
+            return '<tr><td colspan="' + colspan + '" class="px-4 py-6 text-center text-slate-500">' + esc(message) + '</td></tr>';
+        }
+
+        function debounce(fn, delay = 300) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        // ------------------------------ Modal ------------------------------
+
+        function openModal(html) {
+            document.getElementById('modalBox').innerHTML = html;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modalBox').innerHTML = '';
+        }
+
+        document.getElementById('modal').addEventListener('click', (event) => {
+            if (event.target.id === 'modal') closeModal();
+        });
+
+        // ------------------------------ Tab ------------------------------
+
+        document.querySelectorAll('.tab-btn').forEach((button) => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach((other) => {
+                    other.className = 'tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700';
+                });
+                button.className = 'tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 text-white';
+
+                document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.add('hidden'));
+                document.getElementById('tab-' + button.dataset.tab).classList.remove('hidden');
+
+                if (button.dataset.tab === 'loans') {
+                    loadLoanOptions();
+                    loadLoans();
                 }
-            } catch (error) {
-                console.error('Gagal memuat buku:', error);
+                if (button.dataset.tab === 'reports') loadReport();
+            });
+        });
+
+        // ------------------------------ Katalog Buku ------------------------------
+
+        async function loadCategories() {
+            const result = await api('/api/books/categories');
+            const select = document.getElementById('bookCategoryFilter');
+            const current = select.value;
+            select.innerHTML = '<option value="">Semua kategori</option>' +
+                result.data.map((category) => '<option value="' + esc(category) + '">' + esc(category) + '</option>').join('');
+            select.value = current;
+
+            const datalist = document.getElementById('categoryOptions');
+            if (datalist) {
+                datalist.innerHTML = result.data.map((category) => '<option value="' + esc(category) + '"></option>').join('');
             }
         }
 
-        function renderBooks(books) {
-            if (books.length === 0) {
-                bookTableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">Belum ada buku tersedia.</td></tr>`;
+        async function loadBookOptions() {
+            const result = await api('/api/books');
+            state.bookOptions = result.data;
+        }
+
+        async function loadBooks() {
+            const params = new URLSearchParams({
+                q: document.getElementById('bookSearch').value.trim(),
+                category: document.getElementById('bookCategoryFilter').value,
+                availability: document.getElementById('bookAvailabilityFilter').value
+            });
+            const result = await api('/api/books?' + params.toString());
+            state.books = result.data;
+            renderBooks();
+        }
+
+        function renderBooks() {
+            const tbody = document.getElementById('bookTableBody');
+            if (!state.books.length) {
+                tbody.innerHTML = emptyRow(5, 'Tidak ada buku yang cocok dengan pencarian.');
+                return;
+            }
+            tbody.innerHTML = state.books.map((book) => {
+                const available = Number(book.available || 0);
+                const stock = Number(book.stock || 0);
+                const badge = available > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
+                return '<tr class="border-b last:border-0 hover:bg-slate-50">' +
+                    '<td class="px-4 py-3"><p class="font-medium text-slate-800">' + esc(book.title) + '</p>' +
+                    '<p class="text-xs text-slate-500">' + esc(book.author) + '</p></td>' +
+                    '<td class="px-4 py-3"><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">' + esc(book.category || 'Umum') + '</span></td>' +
+                    '<td class="px-4 py-3 text-slate-600">' + (book.year ? esc(book.year) : '-') + '</td>' +
+                    '<td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold ' + badge + '">' + available + ' / ' + stock + '</span></td>' +
+                    '<td class="px-4 py-3 text-center whitespace-nowrap">' +
+                    '<button data-action="edit-book" data-id="' + esc(book.id) + '" class="rounded-md bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-300">Ubah</button> ' +
+                    '<button data-action="delete-book" data-id="' + esc(book.id) + '" class="rounded-md bg-red-500 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>' +
+                    '</td></tr>';
+            }).join('');
+        }
+
+        function bookForm(book) {
+            const isEdit = Boolean(book);
+            return '<h2 class="text-lg font-semibold text-slate-800 mb-4">' + (isEdit ? 'Ubah Buku' : 'Tambah Buku Baru') + '</h2>' +
+                '<form id="bookForm" class="space-y-4">' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Judul</label>' +
+                '<input name="title" required value="' + esc(book ? book.title : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Penulis</label>' +
+                '<input name="author" required value="' + esc(book ? book.author : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '<div class="grid grid-cols-2 gap-4">' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tahun terbit</label>' +
+                '<input name="year" type="number" min="1000" max="2100" value="' + esc(book && book.year ? book.year : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Stok</label>' +
+                '<input name="stock" type="number" min="1" required value="' + esc(book ? book.stock : 1) + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '</div>' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kategori</label>' +
+                '<input name="category" list="categoryOptions" value="' + esc(book ? book.category || '' : '') + '" placeholder="Umum" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">' +
+                '<datalist id="categoryOptions"></datalist></div>' +
+                '<input type="hidden" name="id" value="' + esc(book ? book.id : '') + '">' +
+                '<div class="flex justify-end gap-3 pt-2">' +
+                '<button type="button" data-action="close-modal" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button>' +
+                '<button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Simpan</button>' +
+                '</div></form>';
+        }
+
+        function openBookModal(book) {
+            openModal(bookForm(book));
+            loadCategories().catch(() => undefined);
+
+            document.getElementById('bookForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = event.target;
+                const payload = {
+                    title: form.title.value.trim(),
+                    author: form.author.value.trim(),
+                    year: form.year.value,
+                    category: form.category.value.trim(),
+                    stock: form.stock.value
+                };
+                const id = form.id.value;
+                try {
+                    const result = id
+                        ? await api('/api/books/' + id, { method: 'PUT', body: JSON.stringify(payload) })
+                        : await api('/api/books', { method: 'POST', body: JSON.stringify(payload) });
+                    showToast(result.message);
+                    closeModal();
+                    await Promise.all([loadBooks(), loadCategories(), loadBookOptions()]);
+                } catch (error) {
+                    showToast(error.message, 'error');
+                }
+            });
+        }
+
+        document.getElementById('btnAddBook').addEventListener('click', () => openBookModal(null));
+
+        document.getElementById('bookTableBody').addEventListener('click', async (event) => {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            const id = button.dataset.id;
+
+            if (button.dataset.action === 'edit-book') {
+                const book = state.books.find((item) => item.id === id);
+                if (book) openBookModal(book);
                 return;
             }
 
-            bookTableBody.innerHTML = books.map(book => `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="py-3 px-4">${escapeHtml(book.title)}</td>
-                    <td class="py-3 px-4">${escapeHtml(book.author)}</td>
-                    <td class="py-3 px-4">${escapeHtml(String(book.year))}</td>
-                    <td class="py-3 px-4 text-center">
-                        <button onclick="deleteBook('${book.id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition">Hapus</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        bookForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = document.getElementById('title').value;
-            const author = document.getElementById('author').value;
-            const year = document.getElementById('year').value;
-
-            try {
-                const response = await fetch('/api/books', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, author, year })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    bookForm.reset();
-                    fetchBooks();
-                } else {
-                    alert(result.message);
+            if (button.dataset.action === 'delete-book') {
+                const book = state.books.find((item) => item.id === id);
+                if (!confirm('Hapus buku "' + (book ? book.title : '') + '" dari katalog?')) return;
+                try {
+                    const result = await api('/api/books/' + id, { method: 'DELETE' });
+                    showToast(result.message);
+                    await Promise.all([loadBooks(), loadCategories(), loadBookOptions()]);
+                } catch (error) {
+                    showToast(error.message, 'error');
                 }
-            } catch (error) {
-                console.error('Gagal menambah buku:', error);
             }
         });
 
-        async function deleteBook(id) {
-            if (!confirm('Apakah Anda yakin ingin menghapus buku ini?')) return;
-            try {
-                const response = await fetch(`/api/books/${id}`, { method: 'DELETE' });
-                const result = await response.json();
-                if (result.success) {
-                    fetchBooks();
-                } else {
-                    alert(result.message);
+        // ------------------------------ Anggota ------------------------------
+
+        async function loadMemberOptions() {
+            const result = await api('/api/members');
+            state.memberOptions = result.data;
+        }
+
+        async function loadMembers() {
+            const params = new URLSearchParams({
+                q: document.getElementById('memberSearch').value.trim(),
+                type: document.getElementById('memberTypeFilter').value
+            });
+            const result = await api('/api/members?' + params.toString());
+            state.members = result.data;
+            renderMembers();
+        }
+
+        function renderMembers() {
+            const tbody = document.getElementById('memberTableBody');
+            if (!state.members.length) {
+                tbody.innerHTML = emptyRow(5, 'Belum ada anggota yang terdaftar.');
+                return;
+            }
+            tbody.innerHTML = state.members.map((member) => {
+                const contact = [member.email, member.phone].filter(Boolean).map(esc).join('<br>') || '-';
+                return '<tr class="border-b last:border-0 hover:bg-slate-50">' +
+                    '<td class="px-4 py-3"><p class="font-medium text-slate-800">' + esc(member.name) + '</p>' +
+                    '<p class="text-xs text-slate-500">' + (member.address ? esc(member.address) : '&nbsp;') + '</p></td>' +
+                    '<td class="px-4 py-3 font-mono text-xs text-slate-600">' + esc(member.code) + '</td>' +
+                    '<td class="px-4 py-3"><span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">' + esc(member.type) + '</span></td>' +
+                    '<td class="px-4 py-3 text-xs text-slate-600">' + contact + '</td>' +
+                    '<td class="px-4 py-3 text-center whitespace-nowrap">' +
+                    '<button data-action="edit-member" data-id="' + esc(member.id) + '" class="rounded-md bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-300">Ubah</button> ' +
+                    '<button data-action="delete-member" data-id="' + esc(member.id) + '" class="rounded-md bg-red-500 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>' +
+                    '</td></tr>';
+            }).join('');
+        }
+
+        function openMemberModal(member) {
+            const isEdit = Boolean(member);
+            openModal(
+                '<h2 class="text-lg font-semibold text-slate-800 mb-4">' + (isEdit ? 'Ubah Data Anggota' : 'Pendaftaran Anggota') + '</h2>' +
+                '<form id="memberForm" class="space-y-4">' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nama lengkap</label>' +
+                '<input name="name" required value="' + esc(member ? member.name : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '<div class="grid grid-cols-2 gap-4">' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">No. anggota</label>' +
+                '<input name="code" value="' + esc(member ? member.code : '') + '" placeholder="Otomatis" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tipe</label>' +
+                '<select name="type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">' +
+                ['Siswa', 'Mahasiswa', 'Umum'].map((type) => {
+                    const selected = member && member.type === type ? ' selected' : (!member && type === 'Umum' ? ' selected' : '');
+                    return '<option value="' + type + '"' + selected + '>' + type + '</option>';
+                }).join('') +
+                '</select></div></div>' +
+                '<div class="grid grid-cols-2 gap-4">' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Email</label>' +
+                '<input name="email" type="email" value="' + esc(member ? member.email : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">No. telepon</label>' +
+                '<input name="phone" value="' + esc(member ? member.phone : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
+                '</div>' +
+                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Alamat</label>' +
+                '<textarea name="address" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">' + esc(member ? member.address : '') + '</textarea></div>' +
+                '<input type="hidden" name="id" value="' + esc(member ? member.id : '') + '">' +
+                '<div class="flex justify-end gap-3 pt-2">' +
+                '<button type="button" data-action="close-modal" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button>' +
+                '<button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Simpan</button>' +
+                '</div></form>'
+            );
+
+            document.getElementById('memberForm').addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const form = event.target;
+                const payload = {
+                    name: form.name.value.trim(),
+                    code: form.code.value.trim(),
+                    type: form.type.value,
+                    email: form.email.value.trim(),
+                    phone: form.phone.value.trim(),
+                    address: form.address.value.trim()
+                };
+                const id = form.id.value;
+                try {
+                    const result = id
+                        ? await api('/api/members/' + id, { method: 'PUT', body: JSON.stringify(payload) })
+                        : await api('/api/members', { method: 'POST', body: JSON.stringify(payload) });
+                    showToast(result.message);
+                    closeModal();
+                    await Promise.all([loadMembers(), loadMemberOptions()]);
+                } catch (error) {
+                    showToast(error.message, 'error');
                 }
+            });
+        }
+
+        document.getElementById('btnAddMember').addEventListener('click', () => openMemberModal(null));
+
+        document.getElementById('memberTableBody').addEventListener('click', async (event) => {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            const id = button.dataset.id;
+
+            if (button.dataset.action === 'edit-member') {
+                const member = state.members.find((item) => item.id === id);
+                if (member) openMemberModal(member);
+                return;
+            }
+
+            if (button.dataset.action === 'delete-member') {
+                const member = state.members.find((item) => item.id === id);
+                if (!confirm('Hapus anggota "' + (member ? member.name : '') + '"?')) return;
+                try {
+                    const result = await api('/api/members/' + id, { method: 'DELETE' });
+                    showToast(result.message);
+                    await Promise.all([loadMembers(), loadMemberOptions()]);
+                } catch (error) {
+                    showToast(error.message, 'error');
+                }
+            }
+        });
+
+        // ------------------------------ Peminjaman ------------------------------
+
+        async function loadLoanOptions() {
+            try {
+                await Promise.all([loadBookOptions(), loadMemberOptions()]);
+                const bookSelect = document.getElementById('loanBook');
+                const memberSelect = document.getElementById('loanMember');
+
+                const availableBooks = state.bookOptions.filter((book) => Number(book.available || 0) > 0);
+                bookSelect.innerHTML = availableBooks.length
+                    ? '<option value="">— Pilih buku —</option>' + availableBooks.map((book) =>
+                        '<option value="' + esc(book.id) + '">' + esc(book.title) + ' — ' + esc(book.author) +
+                        ' (tersedia ' + book.available + '/' + book.stock + ')</option>').join('')
+                    : '<option value="">Tidak ada buku dengan stok tersedia</option>';
+
+                memberSelect.innerHTML = state.memberOptions.length
+                    ? '<option value="">— Pilih anggota —</option>' + state.memberOptions.map((member) =>
+                        '<option value="' + esc(member.id) + '">' + esc(member.name) + ' (' + esc(member.code) + ' · ' + esc(member.type) + ')</option>').join('')
+                    : '<option value="">Belum ada anggota terdaftar</option>';
             } catch (error) {
-                console.error('Gagal menghapus buku:', error);
+                showToast(error.message, 'error');
             }
         }
 
-        function escapeHtml(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-            );
+        function updateDuePreview() {
+            const days = Number(document.getElementById('loanDays').value || state.settings.loanDays);
+            const due = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+            document.getElementById('loanDuePreview').textContent =
+                'Jatuh tempo: ' + due.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) +
+                ' · denda keterlambatan ' + rupiah(state.settings.finePerDay) + '/hari.';
         }
 
-        fetchBooks();
+        document.getElementById('loanDays').addEventListener('input', updateDuePreview);
+
+        document.getElementById('loanForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const payload = {
+                bookId: document.getElementById('loanBook').value,
+                memberId: document.getElementById('loanMember').value,
+                days: document.getElementById('loanDays').value
+            };
+            if (!payload.bookId || !payload.memberId) {
+                showToast('Pilih buku dan anggota terlebih dahulu.', 'error');
+                return;
+            }
+            try {
+                const result = await api('/api/loans', { method: 'POST', body: JSON.stringify(payload) });
+                showToast(result.message);
+                document.getElementById('loanForm').reset();
+                document.getElementById('loanDays').value = state.settings.loanDays;
+                updateDuePreview();
+                await Promise.all([loadLoanOptions(), loadLoans(), loadBooks()]);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        async function loadLoans() {
+            const params = new URLSearchParams({
+                q: document.getElementById('loanSearch').value.trim(),
+                status: document.getElementById('loanStatusFilter').value
+            });
+            const result = await api('/api/loans?' + params.toString());
+            state.loans = result.data;
+            if (result.settings) {
+                state.settings = result.settings;
+                updateDuePreview();
+            }
+            renderLoans();
+        }
+
+        function renderLoans() {
+            const tbody = document.getElementById('loanTableBody');
+            if (!state.loans.length) {
+                tbody.innerHTML = emptyRow(7, 'Belum ada transaksi peminjaman.');
+                return;
+            }
+            tbody.innerHTML = state.loans.map((loan) => {
+                let statusBadge = '<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Dipinjam</span>';
+                if (loan.status === 'returned') {
+                    statusBadge = '<span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Dikembalikan ' +
+                        formatDate(loan.returnedAt) + '</span>';
+                } else if (loan.isOverdue) {
+                    statusBadge = '<span class="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Terlambat ' + loan.lateDays + ' hari</span>';
+                }
+
+                const fine = loan.fine > 0
+                    ? '<span class="font-semibold text-red-600">' + rupiah(loan.fine) + '</span>'
+                    : '<span class="text-slate-400">—</span>';
+
+                const action = loan.status === 'borrowed'
+                    ? '<button data-action="return-loan" data-id="' + esc(loan.id) + '" class="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700">Kembalikan</button>'
+                    : '<span class="text-xs text-slate-400">Selesai</span>';
+
+                return '<tr class="border-b last:border-0 hover:bg-slate-50">' +
+                    '<td class="px-4 py-3"><p class="font-medium text-slate-800">' + esc(loan.bookTitle) + '</p>' +
+                    '<p class="text-xs text-slate-500">' + esc(loan.bookAuthor || '') + '</p></td>' +
+                    '<td class="px-4 py-3"><p class="text-slate-700">' + esc(loan.memberName) + '</p>' +
+                    '<p class="text-xs font-mono text-slate-500">' + esc(loan.memberCode || '') + '</p></td>' +
+                    '<td class="px-4 py-3 text-slate-600">' + formatDate(loan.borrowedAt) + '</td>' +
+                    '<td class="px-4 py-3 text-slate-600">' + formatDate(loan.dueAt) + '</td>' +
+                    '<td class="px-4 py-3">' + statusBadge + '</td>' +
+                    '<td class="px-4 py-3">' + fine + '</td>' +
+                    '<td class="px-4 py-3 text-center whitespace-nowrap">' + action + '</td></tr>';
+            }).join('');
+        }
+
+        document.getElementById('loanTableBody').addEventListener('click', async (event) => {
+            const button = event.target.closest('button[data-action="return-loan"]');
+            if (!button) return;
+            const loan = state.loans.find((item) => item.id === button.dataset.id);
+            if (!loan) return;
+            if (!confirm('Catat pengembalian buku "' + loan.bookTitle + '" oleh ' + loan.memberName + '?')) return;
+            try {
+                const result = await api('/api/loans/' + loan.id + '/return', { method: 'POST', body: '{}' });
+                showToast(result.message, result.data.fine > 0 ? 'info' : 'success');
+                await Promise.all([loadLoans(), loadLoanOptions(), loadBooks()]);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        // ------------------------------ Laporan ------------------------------
+
+        async function loadReport() {
+            try {
+                const result = await api('/api/reports');
+                const data = result.data;
+                state.settings = result.settings || state.settings;
+                document.getElementById('reportMeta').textContent =
+                    'Denda keterlambatan ' + rupiah(state.settings.finePerDay) + '/hari · batas pinjam standar ' +
+                    state.settings.loanDays + ' hari (maksimal ' + state.settings.maxLoanDays + ' hari)';
+
+                const cards = [
+                    { label: 'Judul Buku', value: data.summary.totalTitles, hint: data.summary.totalCopies + ' total eksemplar' },
+                    { label: 'Eksemplar Tersedia', value: data.summary.availableCopies, hint: data.summary.borrowedCopies + ' sedang dipinjam' },
+                    { label: 'Anggota Terdaftar', value: data.summary.totalMembers, hint: data.summary.activeLoans + ' peminjaman aktif' },
+                    { label: 'Terlambat', value: data.summary.overdueLoans, hint: 'Denda berjalan ' + rupiah(data.summary.outstandingFines) },
+                    { label: 'Total Transaksi', value: data.summary.activeLoans + data.summary.returnedLoans, hint: data.summary.returnedLoans + ' sudah selesai' },
+                    { label: 'Denda Terkumpul', value: rupiah(data.summary.collectedFines), hint: 'Dari buku yang sudah dikembalikan' },
+                    { label: 'Denda Berjalan', value: rupiah(data.summary.outstandingFines), hint: 'Belum dikembalikan' },
+                    { label: 'Total Denda', value: rupiah(data.summary.totalFines), hint: 'Terkumpul + berjalan' }
+                ];
+                document.getElementById('summaryCards').innerHTML = cards.map((card) =>
+                    '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">' +
+                    '<p class="text-xs font-semibold uppercase text-slate-500">' + esc(card.label) + '</p>' +
+                    '<p class="mt-1 text-xl font-bold text-slate-800">' + esc(card.value) + '</p>' +
+                    '<p class="text-xs text-slate-500">' + esc(card.hint) + '</p></div>').join('');
+
+                const topBody = document.getElementById('topBooksBody');
+                topBody.innerHTML = data.topBooks.length
+                    ? data.topBooks.map((book, index) =>
+                        '<tr class="border-b last:border-0">' +
+                        '<td class="px-4 py-3 text-slate-500">' + (index + 1) + '</td>' +
+                        '<td class="px-4 py-3 font-medium text-slate-800">' + esc(book.title) + '</td>' +
+                        '<td class="px-4 py-3 text-slate-600">' + esc(book.author) + '</td>' +
+                        '<td class="px-4 py-3 font-semibold text-slate-800">' + book.totalLoans + 'x</td>' +
+                        '<td class="px-4 py-3 text-slate-600">' + book.activeLoans + '</td></tr>').join('')
+                    : emptyRow(5, 'Belum ada data peminjaman.');
+
+                const finesBody = document.getElementById('finesBody');
+                finesBody.innerHTML = data.fines.length
+                    ? data.fines.map((fine) =>
+                        '<tr class="border-b last:border-0">' +
+                        '<td class="px-4 py-3 font-medium text-slate-800">' + esc(fine.bookTitle) + '</td>' +
+                        '<td class="px-4 py-3 text-slate-600">' + esc(fine.memberName) + '</td>' +
+                        '<td class="px-4 py-3 text-slate-600">' + formatDate(fine.dueAt) + '</td>' +
+                        '<td class="px-4 py-3 text-slate-600">' + fine.lateDays + ' hari</td>' +
+                        '<td class="px-4 py-3 font-semibold text-red-600">' + rupiah(fine.fine) + '</td>' +
+                        '<td class="px-4 py-3">' + (fine.settled
+                            ? '<span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Sudah dikembalikan</span>'
+                            : '<span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Masih berjalan</span>') +
+                        '</td></tr>').join('')
+                    : emptyRow(6, 'Tidak ada denda keterlambatan. 🎉');
+
+                document.getElementById('monthlyBody').innerHTML = data.monthly.map((month) =>
+                    '<tr class="border-b last:border-0">' +
+                    '<td class="px-4 py-3 font-medium text-slate-700">' + esc(month.label) + '</td>' +
+                    '<td class="px-4 py-3 text-slate-600">' + month.loans + '</td>' +
+                    '<td class="px-4 py-3 text-slate-600">' + month.returns + '</td>' +
+                    '<td class="px-4 py-3 text-slate-600">' + rupiah(month.fines) + '</td></tr>').join('');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        document.getElementById('btnRefreshReport').addEventListener('click', loadReport);
+
+        // ------------------------------ Filter events ------------------------------
+
+        document.getElementById('bookSearch').addEventListener('input', debounce(loadBooks));
+        document.getElementById('bookCategoryFilter').addEventListener('change', loadBooks);
+        document.getElementById('bookAvailabilityFilter').addEventListener('change', loadBooks);
+        document.getElementById('memberSearch').addEventListener('input', debounce(loadMembers));
+        document.getElementById('memberTypeFilter').addEventListener('change', loadMembers);
+        document.getElementById('loanSearch').addEventListener('input', debounce(loadLoans));
+        document.getElementById('loanStatusFilter').addEventListener('change', loadLoans);
+
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('button[data-action="close-modal"]')) closeModal();
+        });
+
+        // ------------------------------ Inisialisasi ------------------------------
+
+        (async function init() {
+            try {
+                const health = await api('/api/health');
+                if (health.settings) state.settings = health.settings;
+                if (health.storage === 'memory') {
+                    const badge = document.getElementById('storageBadge');
+                    badge.textContent = 'Mode data sementara (Firebase belum dikonfigurasi)';
+                    badge.classList.remove('hidden');
+                }
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+
+            updateDuePreview();
+            try {
+                await Promise.all([loadBooks(), loadCategories(), loadMembers(), loadLoanOptions()]);
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        })();
     </script>
 </body>
 </html>
