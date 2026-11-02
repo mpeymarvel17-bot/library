@@ -1,820 +1,1548 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Informasi Perpustakaan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ruang Baca — Administrasi Perpustakaan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3ede1;
+    --paper-2: #faf6ec;
+    --paper-3: #fffdf6;
+    --ink: #1d2723;
+    --ink-soft: #55635b;
+    --rule: #d9cfbb;
+    --rule-soft: #e6ddcb;
+    --wine: #7b2d35;
+    --wine-dark: #5c1f26;
+    --olive: #45573f;
+    --gold: #a37f34;
+    --sans: "Karla", "Segoe UI", system-ui, sans-serif;
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    opacity: .55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+  }
+
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+  /* ------------------------------- Masthead ------------------------------- */
+
+  .masthead {
+    background: var(--paper-2);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .masthead-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .masthead-top .dot { color: var(--gold); }
+
+  .storage {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--wine);
+    border: 1px solid currentColor;
+    padding: 3px 8px;
+    transform: rotate(-.6deg);
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .storage.hidden { display: none; }
+
+  .masthead-title { padding: 26px 0 4px; }
+
+  .masthead h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(40px, 7vw, 68px);
+    line-height: .92;
+    letter-spacing: -.025em;
+    margin: 0;
+    font-variation-settings: "SOFT" 20, "WONK" 1;
+  }
+
+  .masthead h1 em {
+    font-style: italic;
+    color: var(--wine);
+  }
+
+  .lede {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15.5px;
+    color: var(--ink-soft);
+    max-width: 58ch;
+    margin: 12px 0 20px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 30px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-top: 6px;
+  }
+
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    background: none;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    padding: 13px 0;
+    margin-bottom: -2px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+
+  .tab-btn:hover { color: var(--ink); }
+
+  .tab-btn.is-active {
+    color: var(--wine);
+    border-bottom-color: var(--wine);
+  }
+
+  /* ------------------------------- Layout ------------------------------- */
+
+  main { padding: 40px 0 80px; }
+
+  .panel { display: none; animation: rise .28s ease-out; }
+
+  .panel.is-active { display: block; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .section { margin-bottom: 52px; }
+
+  .section:last-child { margin-bottom: 0; }
+
+  .section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 20px;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 6px;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 27px;
+    letter-spacing: -.015em;
+    line-height: 1.15;
+    margin: 0;
+  }
+
+  .section-note {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin: 4px 0 0;
+    max-width: 60ch;
+  }
+
+  /* ------------------------------- Controls ------------------------------- */
+
+  .btn {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    padding: 12px 18px;
+    border: 1px solid var(--ink);
+    border-radius: 1px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s, transform .06s;
+  }
+
+  .btn:active { transform: translateY(1px); }
+
+  .btn-primary {
+    background: var(--wine);
+    border-color: var(--wine);
+    color: #fdf7ec;
+  }
+
+  .btn-primary:hover { background: var(--wine-dark); border-color: var(--wine-dark); }
+
+  .btn-ghost:hover { background: rgba(29, 39, 35, .07); }
+
+  .btn-quiet {
+    border-color: transparent;
+    color: var(--wine);
+    padding: 6px 8px;
+  }
+
+  .btn-quiet:hover { background: rgba(123, 45, 53, .08); }
+
+  .btn-sm {
+    padding: 7px 11px;
+    font-size: 9.5px;
+    letter-spacing: .12em;
+  }
+
+  input, select, textarea {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--paper-3);
+    border: 1px solid var(--rule);
+    border-radius: 1px;
+    padding: 9px 11px;
+    width: 100%;
+    transition: border-color .15s, box-shadow .15s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(163, 127, 52, .18);
+  }
+
+  input::placeholder, textarea::placeholder { color: #9c9484; }
+
+  select {
+    appearance: none;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2355635b' stroke-width='1.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .search { position: relative; }
+
+  .search svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  .search input { padding-left: 34px; }
+
+  .field-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+
+  /* ------------------------------- Tables ------------------------------- */
+
+  .table-wrap { overflow-x: auto; }
+
+  table.ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ledger thead th {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-align: left;
+    padding: 0 14px 9px;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+
+  .ledger tbody td {
+    padding: 15px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: middle;
+  }
+
+  .ledger tbody tr:hover { background: rgba(255, 253, 246, .75); }
+
+  .ledger tbody tr:last-child td { border-bottom: 1px solid var(--rule); }
+
+  .cell-book { display: flex; align-items: center; gap: 12px; min-width: 240px; }
+
+  .spine {
+    flex: 0 0 4px;
+    width: 4px;
+    height: 40px;
+    border-radius: 1px;
+    background: var(--rule);
+  }
+
+  .cell-book .title {
+    font-family: var(--serif);
+    font-size: 16.5px;
+    font-weight: 500;
+    line-height: 1.25;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .cell-book .meta {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 2px 0 0;
+    letter-spacing: .01em;
+  }
+
+  .num { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); }
+
+  .ta-c { text-align: center; }
+
+  .ta-r { text-align: right; }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--olive);
+    border-bottom: 1px solid rgba(69, 87, 63, .4);
+    padding-bottom: 1px;
+    white-space: nowrap;
+  }
+
+  .stock {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+
+  .stock .in { color: var(--olive); }
+
+  .stock .out { color: var(--wine); }
+
+  .stock .sep { color: #b3aa98; padding: 0 2px; }
+
+  .stamp {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border: 1px solid currentColor;
+    border-radius: 1px;
+    white-space: nowrap;
+  }
+
+  .stamp-open { color: #3f5b49; transform: rotate(-1deg); }
+  .stamp-late { color: var(--wine); transform: rotate(1deg); border-width: 1.5px; }
+  .stamp-done { color: #6b7268; }
+  .stamp-note { color: var(--gold); border-style: dashed; }
+
+  .actions { white-space: nowrap; text-align: right; }
+
+  .money { font-family: var(--mono); font-size: 12.5px; }
+  .money.zero { color: #a9a191; }
+  .money.due { color: var(--wine); font-weight: 500; }
+
+  .table-foot {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 12px 0 0;
+  }
+
+  .empty {
+    padding: 34px 14px;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+
+  /* ------------------------------- Cards ------------------------------- */
+
+  .card {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    box-shadow: 5px 5px 0 rgba(29, 39, 35, .05);
+    padding: 22px 24px;
+  }
+
+  .card + .card { margin-top: 26px; }
+
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--rule);
+  }
+
+  .card-head h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 19px;
+    margin: 0;
+  }
+
+  .card-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+
+  .loan-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.3fr) 130px;
+    gap: 16px;
+    align-items: end;
+  }
+
+  .loan-form .span-all { grid-column: 1 / -1; }
+
+  .loan-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+
+  .due-note {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-family: var(--mono);
+    letter-spacing: .02em;
+    margin: 0;
+  }
+
+  .due-note strong { color: var(--ink); font-weight: 500; }
+
+  /* ------------------------------- Reports ------------------------------- */
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+
+  .stat { background: var(--paper-2); padding: 18px 18px 16px; }
+
+  .stat .label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .stat .value {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 29px;
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    margin: 9px 0 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat .value.wine { color: var(--wine); }
+
+  .stat .hint { font-size: 11.5px; color: var(--ink-soft); }
+
+  .barcell { display: flex; align-items: center; gap: 10px; min-width: 130px; }
+
+  .bartrack {
+    flex: 1;
+    height: 7px;
+    background: var(--rule-soft);
+    overflow: hidden;
+  }
+
+  .barfill { display: block; height: 100%; background: var(--wine); opacity: .75; }
+
+  .barcell .barnum {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+    min-width: 2ch;
+    text-align: right;
+  }
+
+  /* ------------------------------- Modal ------------------------------- */
+
+  .modal {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 18px;
+    overflow-y: auto;
+    background: rgba(20, 27, 23, .55);
+    backdrop-filter: blur(2px);
+  }
+
+  .modal.hidden { display: none; }
+
+  .modal-box {
+    width: 100%;
+    max-width: 540px;
+    margin: 18px 0 auto;
+    background: var(--paper-2);
+    border: 1px solid var(--ink);
+    box-shadow: 9px 9px 0 rgba(20, 27, 23, .22);
+    padding: 26px 26px 22px;
+    animation: pop .2s ease-out;
+  }
+
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .modal-box h2 { font-size: 24px; margin-bottom: 4px; }
+
+  .modal-box .kicker { margin-bottom: 10px; }
+
+  .modal-box form { margin-top: 18px; }
+
+  .form-row { margin-bottom: 14px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .form-actions .btn-quiet { border-color: var(--rule); color: var(--ink-soft); }
+  .form-actions .btn-quiet:hover { background: rgba(29, 39, 35, .05); color: var(--ink); }
+
+  /* ------------------------------- Toast ------------------------------- */
+
+  .toasts {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .toast {
+    pointer-events: auto;
+    background: var(--ink);
+    color: #f7f1e4;
+    font-size: 13.5px;
+    padding: 12px 16px 12px 14px;
+    border-left: 3px solid var(--gold);
+    box-shadow: 4px 4px 0 rgba(20, 27, 23, .18);
+    max-width: 330px;
+    animation: pop .2s ease-out;
+  }
+
+  .toast.is-error { border-left-color: #d4735c; }
+  .toast.is-info { border-left-color: #b9a06a; }
+
+  /* ------------------------------- Responsive ------------------------------- */
+
+  @media (max-width: 900px) {
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .toolbar { grid-template-columns: 1fr 1fr; }
+    .toolbar .search { grid-column: 1 / -1; }
+    .loan-form { grid-template-columns: 1fr 1fr; }
+    .loan-form .span-all { grid-column: 1 / -1; }
+    .loan-form > div:nth-child(3) { grid-column: 1 / -1; }
+  }
+
+  @media (max-width: 620px) {
+    .wrap { padding: 0 16px; }
+    main { padding-top: 28px; }
+    .masthead-title { padding-top: 20px; }
+    .masthead-top { flex-direction: column; align-items: flex-start; gap: 7px; font-size: 9px; }
+    .storage { font-size: 8.5px; padding: 2px 6px; }
+    .tabs { gap: 16px; }
+    .tab-btn { font-size: 9.5px; letter-spacing: .13em; padding: 11px 0; }
+    .toolbar { grid-template-columns: 1fr; }
+    .loan-form { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat { padding: 14px; }
+    .stat .value { font-size: 24px; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .section { margin-bottom: 40px; }
+  }
+</style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-700 antialiased">
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div class="mx-auto max-w-6xl px-4 py-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-800">📚 Perpustakaan Digital</h1>
-                    <p class="text-sm text-slate-500">Katalog buku, anggota, peminjaman, dan laporan</p>
-                </div>
-                <span id="storageBadge" class="hidden text-xs rounded-full bg-amber-100 text-amber-800 px-3 py-1"></span>
-            </div>
-            <nav class="mt-4 flex flex-wrap gap-2" id="tabNav">
-                <button data-tab="catalog" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 text-white">Katalog Buku</button>
-                <button data-tab="members" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700">Anggota</button>
-                <button data-tab="loans" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700">Peminjaman &amp; Pengembalian</button>
-                <button data-tab="reports" class="tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700">Laporan</button>
-            </nav>
-        </div>
-    </header>
+<body>
 
-    <main class="mx-auto max-w-6xl px-4 py-6 space-y-6">
-        <!-- ================= KATALOG BUKU ================= -->
-        <section id="tab-catalog" class="tab-panel space-y-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-800">Katalog Buku</h2>
-                        <p class="text-sm text-slate-500">Tambah, ubah, dan hapus koleksi buku beserta stoknya.</p>
-                    </div>
-                    <button id="btnAddBook" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">+ Tambah Buku</button>
-                </div>
-                <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-                    <input id="bookSearch" type="search" placeholder="Cari judul, penulis, atau kategori..."
-                        class="md:col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                    <select id="bookCategoryFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                        <option value="">Semua kategori</option>
-                    </select>
-                    <select id="bookAvailabilityFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                        <option value="">Semua ketersediaan</option>
-                        <option value="available">Tersedia</option>
-                        <option value="empty">Stok habis</option>
-                    </select>
-                </div>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-3">Judul / Penulis</th>
-                                <th class="px-4 py-3">Kategori</th>
-                                <th class="px-4 py-3">Tahun</th>
-                                <th class="px-4 py-3">Tersedia / Stok</th>
-                                <th class="px-4 py-3 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bookTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================= ANGGOTA ================= -->
-        <section id="tab-members" class="tab-panel hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-800">Data Anggota</h2>
-                        <p class="text-sm text-slate-500">Pendaftaran dan pengelolaan anggota perpustakaan.</p>
-                    </div>
-                    <button id="btnAddMember" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">+ Daftarkan Anggota</button>
-                </div>
-                <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <input id="memberSearch" type="search" placeholder="Cari nama, nomor anggota, atau kontak..."
-                        class="md:col-span-2 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                    <select id="memberTypeFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                        <option value="">Semua tipe</option>
-                        <option value="Siswa">Siswa</option>
-                        <option value="Mahasiswa">Mahasiswa</option>
-                        <option value="Umum">Umum</option>
-                    </select>
-                </div>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-3">Nama</th>
-                                <th class="px-4 py-3">No. Anggota</th>
-                                <th class="px-4 py-3">Tipe</th>
-                                <th class="px-4 py-3">Kontak</th>
-                                <th class="px-4 py-3 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="memberTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================= PEMINJAMAN ================= -->
-        <section id="tab-loans" class="tab-panel hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-800">Catat Peminjaman</h2>
-                <p class="text-sm text-slate-500 mb-4">Batas waktu pinjam dihitung otomatis dari tanggal peminjaman.</p>
-                <form id="loanForm" class="grid grid-cols-1 gap-4 md:grid-cols-12">
-                    <div class="md:col-span-5">
-                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Buku</label>
-                        <select id="loanBook" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></select>
-                    </div>
-                    <div class="md:col-span-4">
-                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Anggota</label>
-                        <select id="loanMember" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></select>
-                    </div>
-                    <div class="md:col-span-3">
-                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Lama pinjam (hari)</label>
-                        <input id="loanDays" type="number" min="1" max="30" value="7" required
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                    </div>
-                    <div class="md:col-span-12 flex flex-wrap items-center justify-between gap-3">
-                        <p id="loanDuePreview" class="text-sm text-slate-500"></p>
-                        <button type="submit" class="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700">Simpan Peminjaman</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-800">Transaksi Peminjaman</h2>
-                        <p class="text-sm text-slate-500">Catat pengembalian dan lihat denda keterlambatan.</p>
-                    </div>
-                    <div class="flex flex-wrap gap-3">
-                        <input id="loanSearch" type="search" placeholder="Cari buku atau anggota..."
-                            class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                        <select id="loanStatusFilter" class="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
-                            <option value="">Semua status</option>
-                            <option value="borrowed">Sedang dipinjam</option>
-                            <option value="overdue">Terlambat</option>
-                            <option value="returned">Sudah dikembalikan</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-3">Buku</th>
-                                <th class="px-4 py-3">Anggota</th>
-                                <th class="px-4 py-3">Pinjam</th>
-                                <th class="px-4 py-3">Jatuh Tempo</th>
-                                <th class="px-4 py-3">Status</th>
-                                <th class="px-4 py-3">Denda</th>
-                                <th class="px-4 py-3 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="loanTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================= LAPORAN ================= -->
-        <section id="tab-reports" class="tab-panel hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="flex flex-wrap items-end justify-between gap-3 mb-4">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-800">Rekapitulasi Perpustakaan</h2>
-                        <p id="reportMeta" class="text-sm text-slate-500"></p>
-                    </div>
-                    <button id="btnRefreshReport" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Muat Ulang</button>
-                </div>
-                <div id="summaryCards" class="grid grid-cols-2 gap-4 md:grid-cols-4"></div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-800 mb-4">Buku Terpopuler</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-3 w-12">#</th>
-                                <th class="px-4 py-3">Judul</th>
-                                <th class="px-4 py-3">Penulis</th>
-                                <th class="px-4 py-3">Total Dipinjam</th>
-                                <th class="px-4 py-3">Sedang Dipinjam</th>
-                            </tr>
-                        </thead>
-                        <tbody id="topBooksBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-800 mb-4">Rekap Denda Keterlambatan</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-3">Buku</th>
-                                <th class="px-4 py-3">Anggota</th>
-                                <th class="px-4 py-3">Jatuh Tempo</th>
-                                <th class="px-4 py-3">Terlambat</th>
-                                <th class="px-4 py-3">Denda</th>
-                                <th class="px-4 py-3">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="finesBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h2 class="text-lg font-semibold text-slate-800 mb-4">Rekap 6 Bulan Terakhir</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 text-slate-600">
-                            <tr>
-                                <th class="px-4 py-3">Bulan</th>
-                                <th class="px-4 py-3">Peminjaman</th>
-                                <th class="px-4 py-3">Pengembalian</th>
-                                <th class="px-4 py-3">Denda Terkumpul</th>
-                            </tr>
-                        </thead>
-                        <tbody id="monthlyBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- ================= MODAL ================= -->
-    <div id="modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 p-4">
-        <div id="modalBox" class="mx-auto mt-10 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"></div>
+<header class="masthead">
+  <div class="wrap">
+    <div class="masthead-top">
+      <span>Sistem administrasi perpustakaan</span>
+      <span id="storageBadge" class="storage hidden"></span>
     </div>
 
-    <div id="toast" class="pointer-events-none fixed bottom-6 right-6 z-[60] space-y-2"></div>
-
-    <script>
-        const state = {
-            books: [],
-            bookOptions: [],
-            members: [],
-            memberOptions: [],
-            loans: [],
-            settings: { loanDays: 7, maxLoanDays: 30, finePerDay: 1000 }
-        };
-
-        // ------------------------------ Utilitas ------------------------------
-
-        const esc = (value) => String(value === undefined || value === null ? '' : value)
-            .replace(/[&<>"']/g, (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[tag]));
-
-        const rupiah = (value) => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
-
-        function formatDate(value) {
-            if (!value) return '-';
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return '-';
-            return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-        }
-
-        function showToast(message, type = 'success') {
-            const colors = {
-                success: 'bg-emerald-600',
-                error: 'bg-red-600',
-                info: 'bg-slate-800'
-            };
-            const node = document.createElement('div');
-            node.className = 'pointer-events-auto rounded-lg px-4 py-3 text-sm text-white shadow-lg ' + (colors[type] || colors.info);
-            node.textContent = message;
-            document.getElementById('toast').appendChild(node);
-            setTimeout(() => node.remove(), 4000);
-        }
-
-        async function api(url, options = {}) {
-            const response = await fetch(url, {
-                headers: { 'Content-Type': 'application/json' },
-                ...options
-            });
-            const body = await response.json().catch(() => ({}));
-            if (!response.ok || body.success === false) {
-                throw new Error(body.message || 'Terjadi kesalahan pada server.');
-            }
-            return body;
-        }
-
-        function emptyRow(colspan, message) {
-            return '<tr><td colspan="' + colspan + '" class="px-4 py-6 text-center text-slate-500">' + esc(message) + '</td></tr>';
-        }
-
-        function debounce(fn, delay = 300) {
-            let timer;
-            return (...args) => {
-                clearTimeout(timer);
-                timer = setTimeout(() => fn(...args), delay);
-            };
-        }
-
-        // ------------------------------ Modal ------------------------------
-
-        function openModal(html) {
-            document.getElementById('modalBox').innerHTML = html;
-            document.getElementById('modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            document.getElementById('modalBox').innerHTML = '';
-        }
-
-        document.getElementById('modal').addEventListener('click', (event) => {
-            if (event.target.id === 'modal') closeModal();
-        });
-
-        // ------------------------------ Tab ------------------------------
-
-        document.querySelectorAll('.tab-btn').forEach((button) => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach((other) => {
-                    other.className = 'tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-slate-200 text-slate-700';
-                });
-                button.className = 'tab-btn rounded-lg px-4 py-2 text-sm font-semibold bg-blue-600 text-white';
-
-                document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.add('hidden'));
-                document.getElementById('tab-' + button.dataset.tab).classList.remove('hidden');
-
-                if (button.dataset.tab === 'loans') {
-                    loadLoanOptions();
-                    loadLoans();
-                }
-                if (button.dataset.tab === 'reports') loadReport();
-            });
-        });
-
-        // ------------------------------ Katalog Buku ------------------------------
-
-        async function loadCategories() {
-            const result = await api('/api/books/categories');
-            const select = document.getElementById('bookCategoryFilter');
-            const current = select.value;
-            select.innerHTML = '<option value="">Semua kategori</option>' +
-                result.data.map((category) => '<option value="' + esc(category) + '">' + esc(category) + '</option>').join('');
-            select.value = current;
-
-            const datalist = document.getElementById('categoryOptions');
-            if (datalist) {
-                datalist.innerHTML = result.data.map((category) => '<option value="' + esc(category) + '"></option>').join('');
-            }
-        }
-
-        async function loadBookOptions() {
-            const result = await api('/api/books');
-            state.bookOptions = result.data;
-        }
-
-        async function loadBooks() {
-            const params = new URLSearchParams({
-                q: document.getElementById('bookSearch').value.trim(),
-                category: document.getElementById('bookCategoryFilter').value,
-                availability: document.getElementById('bookAvailabilityFilter').value
-            });
-            const result = await api('/api/books?' + params.toString());
-            state.books = result.data;
-            renderBooks();
-        }
-
-        function renderBooks() {
-            const tbody = document.getElementById('bookTableBody');
-            if (!state.books.length) {
-                tbody.innerHTML = emptyRow(5, 'Tidak ada buku yang cocok dengan pencarian.');
-                return;
-            }
-            tbody.innerHTML = state.books.map((book) => {
-                const available = Number(book.available || 0);
-                const stock = Number(book.stock || 0);
-                const badge = available > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
-                return '<tr class="border-b last:border-0 hover:bg-slate-50">' +
-                    '<td class="px-4 py-3"><p class="font-medium text-slate-800">' + esc(book.title) + '</p>' +
-                    '<p class="text-xs text-slate-500">' + esc(book.author) + '</p></td>' +
-                    '<td class="px-4 py-3"><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">' + esc(book.category || 'Umum') + '</span></td>' +
-                    '<td class="px-4 py-3 text-slate-600">' + (book.year ? esc(book.year) : '-') + '</td>' +
-                    '<td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold ' + badge + '">' + available + ' / ' + stock + '</span></td>' +
-                    '<td class="px-4 py-3 text-center whitespace-nowrap">' +
-                    '<button data-action="edit-book" data-id="' + esc(book.id) + '" class="rounded-md bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-300">Ubah</button> ' +
-                    '<button data-action="delete-book" data-id="' + esc(book.id) + '" class="rounded-md bg-red-500 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>' +
-                    '</td></tr>';
-            }).join('');
-        }
-
-        function bookForm(book) {
-            const isEdit = Boolean(book);
-            return '<h2 class="text-lg font-semibold text-slate-800 mb-4">' + (isEdit ? 'Ubah Buku' : 'Tambah Buku Baru') + '</h2>' +
-                '<form id="bookForm" class="space-y-4">' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Judul</label>' +
-                '<input name="title" required value="' + esc(book ? book.title : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Penulis</label>' +
-                '<input name="author" required value="' + esc(book ? book.author : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '<div class="grid grid-cols-2 gap-4">' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tahun terbit</label>' +
-                '<input name="year" type="number" min="1000" max="2100" value="' + esc(book && book.year ? book.year : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Stok</label>' +
-                '<input name="stock" type="number" min="1" required value="' + esc(book ? book.stock : 1) + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '</div>' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Kategori</label>' +
-                '<input name="category" list="categoryOptions" value="' + esc(book ? book.category || '' : '') + '" placeholder="Umum" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">' +
-                '<datalist id="categoryOptions"></datalist></div>' +
-                '<input type="hidden" name="id" value="' + esc(book ? book.id : '') + '">' +
-                '<div class="flex justify-end gap-3 pt-2">' +
-                '<button type="button" data-action="close-modal" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button>' +
-                '<button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Simpan</button>' +
-                '</div></form>';
-        }
-
-        function openBookModal(book) {
-            openModal(bookForm(book));
-            loadCategories().catch(() => undefined);
-
-            document.getElementById('bookForm').addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const form = event.target;
-                const payload = {
-                    title: form.title.value.trim(),
-                    author: form.author.value.trim(),
-                    year: form.year.value,
-                    category: form.category.value.trim(),
-                    stock: form.stock.value
-                };
-                const id = form.id.value;
-                try {
-                    const result = id
-                        ? await api('/api/books/' + id, { method: 'PUT', body: JSON.stringify(payload) })
-                        : await api('/api/books', { method: 'POST', body: JSON.stringify(payload) });
-                    showToast(result.message);
-                    closeModal();
-                    await Promise.all([loadBooks(), loadCategories(), loadBookOptions()]);
-                } catch (error) {
-                    showToast(error.message, 'error');
-                }
-            });
-        }
-
-        document.getElementById('btnAddBook').addEventListener('click', () => openBookModal(null));
-
-        document.getElementById('bookTableBody').addEventListener('click', async (event) => {
-            const button = event.target.closest('button[data-action]');
-            if (!button) return;
-            const id = button.dataset.id;
-
-            if (button.dataset.action === 'edit-book') {
-                const book = state.books.find((item) => item.id === id);
-                if (book) openBookModal(book);
-                return;
-            }
-
-            if (button.dataset.action === 'delete-book') {
-                const book = state.books.find((item) => item.id === id);
-                if (!confirm('Hapus buku "' + (book ? book.title : '') + '" dari katalog?')) return;
-                try {
-                    const result = await api('/api/books/' + id, { method: 'DELETE' });
-                    showToast(result.message);
-                    await Promise.all([loadBooks(), loadCategories(), loadBookOptions()]);
-                } catch (error) {
-                    showToast(error.message, 'error');
-                }
-            }
-        });
-
-        // ------------------------------ Anggota ------------------------------
-
-        async function loadMemberOptions() {
-            const result = await api('/api/members');
-            state.memberOptions = result.data;
-        }
-
-        async function loadMembers() {
-            const params = new URLSearchParams({
-                q: document.getElementById('memberSearch').value.trim(),
-                type: document.getElementById('memberTypeFilter').value
-            });
-            const result = await api('/api/members?' + params.toString());
-            state.members = result.data;
-            renderMembers();
-        }
-
-        function renderMembers() {
-            const tbody = document.getElementById('memberTableBody');
-            if (!state.members.length) {
-                tbody.innerHTML = emptyRow(5, 'Belum ada anggota yang terdaftar.');
-                return;
-            }
-            tbody.innerHTML = state.members.map((member) => {
-                const contact = [member.email, member.phone].filter(Boolean).map(esc).join('<br>') || '-';
-                return '<tr class="border-b last:border-0 hover:bg-slate-50">' +
-                    '<td class="px-4 py-3"><p class="font-medium text-slate-800">' + esc(member.name) + '</p>' +
-                    '<p class="text-xs text-slate-500">' + (member.address ? esc(member.address) : '&nbsp;') + '</p></td>' +
-                    '<td class="px-4 py-3 font-mono text-xs text-slate-600">' + esc(member.code) + '</td>' +
-                    '<td class="px-4 py-3"><span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">' + esc(member.type) + '</span></td>' +
-                    '<td class="px-4 py-3 text-xs text-slate-600">' + contact + '</td>' +
-                    '<td class="px-4 py-3 text-center whitespace-nowrap">' +
-                    '<button data-action="edit-member" data-id="' + esc(member.id) + '" class="rounded-md bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-300">Ubah</button> ' +
-                    '<button data-action="delete-member" data-id="' + esc(member.id) + '" class="rounded-md bg-red-500 px-3 py-1 text-xs font-semibold text-white hover:bg-red-600">Hapus</button>' +
-                    '</td></tr>';
-            }).join('');
-        }
-
-        function openMemberModal(member) {
-            const isEdit = Boolean(member);
-            openModal(
-                '<h2 class="text-lg font-semibold text-slate-800 mb-4">' + (isEdit ? 'Ubah Data Anggota' : 'Pendaftaran Anggota') + '</h2>' +
-                '<form id="memberForm" class="space-y-4">' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nama lengkap</label>' +
-                '<input name="name" required value="' + esc(member ? member.name : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '<div class="grid grid-cols-2 gap-4">' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">No. anggota</label>' +
-                '<input name="code" value="' + esc(member ? member.code : '') + '" placeholder="Otomatis" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tipe</label>' +
-                '<select name="type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">' +
-                ['Siswa', 'Mahasiswa', 'Umum'].map((type) => {
-                    const selected = member && member.type === type ? ' selected' : (!member && type === 'Umum' ? ' selected' : '');
-                    return '<option value="' + type + '"' + selected + '>' + type + '</option>';
-                }).join('') +
-                '</select></div></div>' +
-                '<div class="grid grid-cols-2 gap-4">' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Email</label>' +
-                '<input name="email" type="email" value="' + esc(member ? member.email : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">No. telepon</label>' +
-                '<input name="phone" value="' + esc(member ? member.phone : '') + '" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"></div>' +
-                '</div>' +
-                '<div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Alamat</label>' +
-                '<textarea name="address" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">' + esc(member ? member.address : '') + '</textarea></div>' +
-                '<input type="hidden" name="id" value="' + esc(member ? member.id : '') + '">' +
-                '<div class="flex justify-end gap-3 pt-2">' +
-                '<button type="button" data-action="close-modal" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button>' +
-                '<button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Simpan</button>' +
-                '</div></form>'
-            );
-
-            document.getElementById('memberForm').addEventListener('submit', async (event) => {
-                event.preventDefault();
-                const form = event.target;
-                const payload = {
-                    name: form.name.value.trim(),
-                    code: form.code.value.trim(),
-                    type: form.type.value,
-                    email: form.email.value.trim(),
-                    phone: form.phone.value.trim(),
-                    address: form.address.value.trim()
-                };
-                const id = form.id.value;
-                try {
-                    const result = id
-                        ? await api('/api/members/' + id, { method: 'PUT', body: JSON.stringify(payload) })
-                        : await api('/api/members', { method: 'POST', body: JSON.stringify(payload) });
-                    showToast(result.message);
-                    closeModal();
-                    await Promise.all([loadMembers(), loadMemberOptions()]);
-                } catch (error) {
-                    showToast(error.message, 'error');
-                }
-            });
-        }
-
-        document.getElementById('btnAddMember').addEventListener('click', () => openMemberModal(null));
-
-        document.getElementById('memberTableBody').addEventListener('click', async (event) => {
-            const button = event.target.closest('button[data-action]');
-            if (!button) return;
-            const id = button.dataset.id;
-
-            if (button.dataset.action === 'edit-member') {
-                const member = state.members.find((item) => item.id === id);
-                if (member) openMemberModal(member);
-                return;
-            }
-
-            if (button.dataset.action === 'delete-member') {
-                const member = state.members.find((item) => item.id === id);
-                if (!confirm('Hapus anggota "' + (member ? member.name : '') + '"?')) return;
-                try {
-                    const result = await api('/api/members/' + id, { method: 'DELETE' });
-                    showToast(result.message);
-                    await Promise.all([loadMembers(), loadMemberOptions()]);
-                } catch (error) {
-                    showToast(error.message, 'error');
-                }
-            }
-        });
-
-        // ------------------------------ Peminjaman ------------------------------
-
-        async function loadLoanOptions() {
-            try {
-                await Promise.all([loadBookOptions(), loadMemberOptions()]);
-                const bookSelect = document.getElementById('loanBook');
-                const memberSelect = document.getElementById('loanMember');
-
-                const availableBooks = state.bookOptions.filter((book) => Number(book.available || 0) > 0);
-                bookSelect.innerHTML = availableBooks.length
-                    ? '<option value="">— Pilih buku —</option>' + availableBooks.map((book) =>
-                        '<option value="' + esc(book.id) + '">' + esc(book.title) + ' — ' + esc(book.author) +
-                        ' (tersedia ' + book.available + '/' + book.stock + ')</option>').join('')
-                    : '<option value="">Tidak ada buku dengan stok tersedia</option>';
-
-                memberSelect.innerHTML = state.memberOptions.length
-                    ? '<option value="">— Pilih anggota —</option>' + state.memberOptions.map((member) =>
-                        '<option value="' + esc(member.id) + '">' + esc(member.name) + ' (' + esc(member.code) + ' · ' + esc(member.type) + ')</option>').join('')
-                    : '<option value="">Belum ada anggota terdaftar</option>';
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        }
-
-        function updateDuePreview() {
-            const days = Number(document.getElementById('loanDays').value || state.settings.loanDays);
-            const due = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-            document.getElementById('loanDuePreview').textContent =
-                'Jatuh tempo: ' + due.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) +
-                ' · denda keterlambatan ' + rupiah(state.settings.finePerDay) + '/hari.';
-        }
-
-        document.getElementById('loanDays').addEventListener('input', updateDuePreview);
-
-        document.getElementById('loanForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const payload = {
-                bookId: document.getElementById('loanBook').value,
-                memberId: document.getElementById('loanMember').value,
-                days: document.getElementById('loanDays').value
-            };
-            if (!payload.bookId || !payload.memberId) {
-                showToast('Pilih buku dan anggota terlebih dahulu.', 'error');
-                return;
-            }
-            try {
-                const result = await api('/api/loans', { method: 'POST', body: JSON.stringify(payload) });
-                showToast(result.message);
-                document.getElementById('loanForm').reset();
-                document.getElementById('loanDays').value = state.settings.loanDays;
-                updateDuePreview();
-                await Promise.all([loadLoanOptions(), loadLoans(), loadBooks()]);
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        });
-
-        async function loadLoans() {
-            const params = new URLSearchParams({
-                q: document.getElementById('loanSearch').value.trim(),
-                status: document.getElementById('loanStatusFilter').value
-            });
-            const result = await api('/api/loans?' + params.toString());
-            state.loans = result.data;
-            if (result.settings) {
-                state.settings = result.settings;
-                updateDuePreview();
-            }
-            renderLoans();
-        }
-
-        function renderLoans() {
-            const tbody = document.getElementById('loanTableBody');
-            if (!state.loans.length) {
-                tbody.innerHTML = emptyRow(7, 'Belum ada transaksi peminjaman.');
-                return;
-            }
-            tbody.innerHTML = state.loans.map((loan) => {
-                let statusBadge = '<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Dipinjam</span>';
-                if (loan.status === 'returned') {
-                    statusBadge = '<span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Dikembalikan ' +
-                        formatDate(loan.returnedAt) + '</span>';
-                } else if (loan.isOverdue) {
-                    statusBadge = '<span class="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">Terlambat ' + loan.lateDays + ' hari</span>';
-                }
-
-                const fine = loan.fine > 0
-                    ? '<span class="font-semibold text-red-600">' + rupiah(loan.fine) + '</span>'
-                    : '<span class="text-slate-400">—</span>';
-
-                const action = loan.status === 'borrowed'
-                    ? '<button data-action="return-loan" data-id="' + esc(loan.id) + '" class="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700">Kembalikan</button>'
-                    : '<span class="text-xs text-slate-400">Selesai</span>';
-
-                return '<tr class="border-b last:border-0 hover:bg-slate-50">' +
-                    '<td class="px-4 py-3"><p class="font-medium text-slate-800">' + esc(loan.bookTitle) + '</p>' +
-                    '<p class="text-xs text-slate-500">' + esc(loan.bookAuthor || '') + '</p></td>' +
-                    '<td class="px-4 py-3"><p class="text-slate-700">' + esc(loan.memberName) + '</p>' +
-                    '<p class="text-xs font-mono text-slate-500">' + esc(loan.memberCode || '') + '</p></td>' +
-                    '<td class="px-4 py-3 text-slate-600">' + formatDate(loan.borrowedAt) + '</td>' +
-                    '<td class="px-4 py-3 text-slate-600">' + formatDate(loan.dueAt) + '</td>' +
-                    '<td class="px-4 py-3">' + statusBadge + '</td>' +
-                    '<td class="px-4 py-3">' + fine + '</td>' +
-                    '<td class="px-4 py-3 text-center whitespace-nowrap">' + action + '</td></tr>';
-            }).join('');
-        }
-
-        document.getElementById('loanTableBody').addEventListener('click', async (event) => {
-            const button = event.target.closest('button[data-action="return-loan"]');
-            if (!button) return;
-            const loan = state.loans.find((item) => item.id === button.dataset.id);
-            if (!loan) return;
-            if (!confirm('Catat pengembalian buku "' + loan.bookTitle + '" oleh ' + loan.memberName + '?')) return;
-            try {
-                const result = await api('/api/loans/' + loan.id + '/return', { method: 'POST', body: '{}' });
-                showToast(result.message, result.data.fine > 0 ? 'info' : 'success');
-                await Promise.all([loadLoans(), loadLoanOptions(), loadBooks()]);
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        });
-
-        // ------------------------------ Laporan ------------------------------
-
-        async function loadReport() {
-            try {
-                const result = await api('/api/reports');
-                const data = result.data;
-                state.settings = result.settings || state.settings;
-                document.getElementById('reportMeta').textContent =
-                    'Denda keterlambatan ' + rupiah(state.settings.finePerDay) + '/hari · batas pinjam standar ' +
-                    state.settings.loanDays + ' hari (maksimal ' + state.settings.maxLoanDays + ' hari)';
-
-                const cards = [
-                    { label: 'Judul Buku', value: data.summary.totalTitles, hint: data.summary.totalCopies + ' total eksemplar' },
-                    { label: 'Eksemplar Tersedia', value: data.summary.availableCopies, hint: data.summary.borrowedCopies + ' sedang dipinjam' },
-                    { label: 'Anggota Terdaftar', value: data.summary.totalMembers, hint: data.summary.activeLoans + ' peminjaman aktif' },
-                    { label: 'Terlambat', value: data.summary.overdueLoans, hint: 'Denda berjalan ' + rupiah(data.summary.outstandingFines) },
-                    { label: 'Total Transaksi', value: data.summary.activeLoans + data.summary.returnedLoans, hint: data.summary.returnedLoans + ' sudah selesai' },
-                    { label: 'Denda Terkumpul', value: rupiah(data.summary.collectedFines), hint: 'Dari buku yang sudah dikembalikan' },
-                    { label: 'Denda Berjalan', value: rupiah(data.summary.outstandingFines), hint: 'Belum dikembalikan' },
-                    { label: 'Total Denda', value: rupiah(data.summary.totalFines), hint: 'Terkumpul + berjalan' }
-                ];
-                document.getElementById('summaryCards').innerHTML = cards.map((card) =>
-                    '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">' +
-                    '<p class="text-xs font-semibold uppercase text-slate-500">' + esc(card.label) + '</p>' +
-                    '<p class="mt-1 text-xl font-bold text-slate-800">' + esc(card.value) + '</p>' +
-                    '<p class="text-xs text-slate-500">' + esc(card.hint) + '</p></div>').join('');
-
-                const topBody = document.getElementById('topBooksBody');
-                topBody.innerHTML = data.topBooks.length
-                    ? data.topBooks.map((book, index) =>
-                        '<tr class="border-b last:border-0">' +
-                        '<td class="px-4 py-3 text-slate-500">' + (index + 1) + '</td>' +
-                        '<td class="px-4 py-3 font-medium text-slate-800">' + esc(book.title) + '</td>' +
-                        '<td class="px-4 py-3 text-slate-600">' + esc(book.author) + '</td>' +
-                        '<td class="px-4 py-3 font-semibold text-slate-800">' + book.totalLoans + 'x</td>' +
-                        '<td class="px-4 py-3 text-slate-600">' + book.activeLoans + '</td></tr>').join('')
-                    : emptyRow(5, 'Belum ada data peminjaman.');
-
-                const finesBody = document.getElementById('finesBody');
-                finesBody.innerHTML = data.fines.length
-                    ? data.fines.map((fine) =>
-                        '<tr class="border-b last:border-0">' +
-                        '<td class="px-4 py-3 font-medium text-slate-800">' + esc(fine.bookTitle) + '</td>' +
-                        '<td class="px-4 py-3 text-slate-600">' + esc(fine.memberName) + '</td>' +
-                        '<td class="px-4 py-3 text-slate-600">' + formatDate(fine.dueAt) + '</td>' +
-                        '<td class="px-4 py-3 text-slate-600">' + fine.lateDays + ' hari</td>' +
-                        '<td class="px-4 py-3 font-semibold text-red-600">' + rupiah(fine.fine) + '</td>' +
-                        '<td class="px-4 py-3">' + (fine.settled
-                            ? '<span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Sudah dikembalikan</span>'
-                            : '<span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Masih berjalan</span>') +
-                        '</td></tr>').join('')
-                    : emptyRow(6, 'Tidak ada denda keterlambatan. 🎉');
-
-                document.getElementById('monthlyBody').innerHTML = data.monthly.map((month) =>
-                    '<tr class="border-b last:border-0">' +
-                    '<td class="px-4 py-3 font-medium text-slate-700">' + esc(month.label) + '</td>' +
-                    '<td class="px-4 py-3 text-slate-600">' + month.loans + '</td>' +
-                    '<td class="px-4 py-3 text-slate-600">' + month.returns + '</td>' +
-                    '<td class="px-4 py-3 text-slate-600">' + rupiah(month.fines) + '</td></tr>').join('');
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        }
-
-        document.getElementById('btnRefreshReport').addEventListener('click', loadReport);
-
-        // ------------------------------ Filter events ------------------------------
-
-        document.getElementById('bookSearch').addEventListener('input', debounce(loadBooks));
-        document.getElementById('bookCategoryFilter').addEventListener('change', loadBooks);
-        document.getElementById('bookAvailabilityFilter').addEventListener('change', loadBooks);
-        document.getElementById('memberSearch').addEventListener('input', debounce(loadMembers));
-        document.getElementById('memberTypeFilter').addEventListener('change', loadMembers);
-        document.getElementById('loanSearch').addEventListener('input', debounce(loadLoans));
-        document.getElementById('loanStatusFilter').addEventListener('change', loadLoans);
-
-        document.addEventListener('click', (event) => {
-            if (event.target.closest('button[data-action="close-modal"]')) closeModal();
-        });
-
-        // ------------------------------ Inisialisasi ------------------------------
-
-        (async function init() {
-            try {
-                const health = await api('/api/health');
-                if (health.settings) state.settings = health.settings;
-                if (health.storage === 'memory') {
-                    const badge = document.getElementById('storageBadge');
-                    badge.textContent = 'Mode data sementara (Firebase belum dikonfigurasi)';
-                    badge.classList.remove('hidden');
-                }
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-
-            updateDuePreview();
-            try {
-                await Promise.all([loadBooks(), loadCategories(), loadMembers(), loadLoanOptions()]);
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        })();
-    </script>
+    <div class="masthead-title">
+      <h1>Ruang <em>Baca</em></h1>
+      <p class="lede">Administrasi perpustakaan — koleksi, keanggotaan, peminjaman, dan rekap denda dalam satu meja kerja.</p>
+    </div>
+
+    <nav class="tabs" id="tabNav" aria-label="Bagian aplikasi">
+      <button data-tab="catalog" class="tab-btn is-active">Katalog Buku</button>
+      <button data-tab="members" class="tab-btn">Anggota</button>
+      <button data-tab="loans" class="tab-btn">Peminjaman</button>
+      <button data-tab="reports" class="tab-btn">Laporan</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ================= KATALOG ================= -->
+  <section id="tab-catalog" class="panel is-active">
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Bagian 01</p>
+          <h2>Katalog koleksi</h2>
+          <p class="section-note">Tambah, ubah, dan hapus buku beserta jumlah eksemplarnya.</p>
+        </div>
+        <button id="btnAddBook" class="btn btn-primary">+ Tambah buku</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.2-4.2"></path>
+          </svg>
+          <input id="bookSearch" type="search" placeholder="Cari judul, penulis, atau kategori">
+        </div>
+        <select id="bookCategoryFilter" aria-label="Filter kategori">
+          <option value="">Semua kategori</option>
+        </select>
+        <select id="bookAvailabilityFilter" aria-label="Filter ketersediaan">
+          <option value="">Semua ketersediaan</option>
+          <option value="available">Tersedia</option>
+          <option value="empty">Stok habis</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr>
+              <th>Judul</th>
+              <th>Kategori</th>
+              <th>Tahun</th>
+              <th>Tersedia</th>
+              <th class="ta-r">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bookTableBody"></tbody>
+        </table>
+      </div>
+      <p class="table-foot" id="bookCount"></p>
+    </div>
+  </section>
+
+  <!-- ================= ANGGOTA ================= -->
+  <section id="tab-members" class="panel">
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Bagian 02</p>
+          <h2>Daftar anggota</h2>
+          <p class="section-note">Pendaftaran dan pengelolaan data anggota perpustakaan.</p>
+        </div>
+        <button id="btnAddMember" class="btn btn-primary">+ Daftarkan anggota</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4.2-4.2"></path>
+          </svg>
+          <input id="memberSearch" type="search" placeholder="Cari nama, nomor anggota, atau kontak">
+        </div>
+        <select id="memberTypeFilter" aria-label="Filter tipe anggota">
+          <option value="">Semua tipe</option>
+          <option value="Siswa">Siswa</option>
+          <option value="Mahasiswa">Mahasiswa</option>
+          <option value="Umum">Umum</option>
+        </select>
+        <span></span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>No. anggota</th>
+              <th>Tipe</th>
+              <th>Kontak</th>
+              <th class="ta-r">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="memberTableBody"></tbody>
+        </table>
+      </div>
+      <p class="table-foot" id="memberCount"></p>
+    </div>
+  </section>
+
+  <!-- ================= PEMINJAMAN ================= -->
+  <section id="tab-loans" class="panel">
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Bagian 03</p>
+          <h2>Meja sirkulasi</h2>
+          <p class="section-note">Catat peminjaman, pantau jatuh tempo, dan proses pengembalian.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Lembar peminjaman</h3>
+            <p>Batas waktu dihitung otomatis sejak tanggal pinjam.</p>
+          </div>
+          <span class="stamp stamp-note">Baru</span>
+        </div>
+        <form id="loanForm" class="loan-form">
+          <div>
+            <label class="field-label" for="loanBook">Buku</label>
+            <select id="loanBook" required></select>
+          </div>
+          <div>
+            <label class="field-label" for="loanMember">Anggota</label>
+            <select id="loanMember" required></select>
+          </div>
+          <div>
+            <label class="field-label" for="loanDays">Lama pinjam</label>
+            <input id="loanDays" type="number" min="1" max="30" value="7" required>
+          </div>
+          <div class="span-all loan-actions">
+            <p class="due-note" id="loanDuePreview"></p>
+            <button type="submit" class="btn btn-primary">Simpan peminjaman</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Buku keluar</h3>
+            <p>Transaksi berjalan dan riwayat pengembalian.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="loanSearch" type="search" placeholder="Cari buku atau anggota" style="width:210px">
+            <select id="loanStatusFilter" aria-label="Filter status" style="width:170px">
+              <option value="">Semua status</option>
+              <option value="borrowed">Sedang dipinjam</option>
+              <option value="overdue">Terlambat</option>
+              <option value="returned">Sudah dikembalikan</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="ledger">
+            <thead>
+              <tr>
+                <th>Buku</th>
+                <th>Anggota</th>
+                <th>Pinjam</th>
+                <th>Jatuh tempo</th>
+                <th>Status</th>
+                <th>Denda</th>
+                <th class="ta-r">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="loanTableBody"></tbody>
+          </table>
+        </div>
+        <p class="table-foot" id="loanCount"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LAPORAN ================= -->
+  <section id="tab-reports" class="panel">
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Bagian 04</p>
+          <h2>Rekapitulasi</h2>
+          <p class="section-note" id="reportMeta"></p>
+        </div>
+        <button id="btnRefreshReport" class="btn btn-ghost">Muat ulang</button>
+      </div>
+
+      <div class="stats" id="summaryCards"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Peringkat</p>
+          <h2>Buku paling dipinjam</h2>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr>
+              <th style="width:46px">#</th>
+              <th>Judul</th>
+              <th>Penulis</th>
+              <th>Total dipinjam</th>
+              <th>Sedang keluar</th>
+            </tr>
+          </thead>
+          <tbody id="topBooksBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Sanksi</p>
+          <h2>Rekap denda</h2>
+          <p class="section-note">Termasuk denda yang masih berjalan pada pinjaman belum kembali.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr>
+              <th>Buku</th>
+              <th>Anggota</th>
+              <th>Jatuh tempo</th>
+              <th>Terlambat</th>
+              <th>Denda</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="finesBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <p class="kicker">Enam bulan</p>
+          <h2>Arus sirkulasi</h2>
+          <p class="section-note">Jumlah transaksi masuk, pengembalian, dan denda yang terkumpul per bulan.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr>
+              <th>Bulan</th>
+              <th>Peminjaman</th>
+              <th>Pengembalian</th>
+              <th>Denda terkumpul</th>
+            </tr>
+          </thead>
+          <tbody id="monthlyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= MODAL ================= -->
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div id="modalBox" class="modal-box"></div>
+</div>
+
+<div id="toast" class="toasts" aria-live="polite"></div>
+
+<script>
+  const state = {
+    books: [],
+    bookOptions: [],
+    members: [],
+    memberOptions: [],
+    loans: [],
+    settings: { loanDays: 7, maxLoanDays: 30, finePerDay: 1000 }
+  };
+
+  const SPINES = ['#7b2d35', '#45573f', '#3f5266', '#8a5a2b', '#5b4b6e', '#2f5d55', '#7a6230', '#6b3f3f'];
+
+  // ------------------------------ Utilitas ------------------------------
+
+  const esc = (value) => String(value === undefined || value === null ? '' : value)
+      .replace(/[&<>"']/g, (tag) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[tag]));
+
+  const rupiah = (value) => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+
+  function spineColor(key) {
+    const text = String(key || 'Umum');
+    let hash = 0;
+    for (let i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) % 9973;
+    return SPINES[hash % SPINES.length];
+  }
+
+  function formatDate(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function showToast(message, type = 'success') {
+    const node = document.createElement('div');
+    node.className = 'toast' + (type === 'error' ? ' is-error' : type === 'info' ? ' is-info' : '');
+    node.textContent = message;
+    document.getElementById('toast').appendChild(node);
+    setTimeout(() => node.remove(), 4200);
+  }
+
+  async function api(url, options = {}) {
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.success === false) {
+      throw new Error(body.message || 'Terjadi kesalahan pada server.');
+    }
+    return body;
+  }
+
+  function emptyRow(colspan, message) {
+    return '<tr><td colspan="' + colspan + '" class="empty">' + esc(message) + '</td></tr>';
+  }
+
+  function setCount(id, total, noun) {
+    const node = document.getElementById(id);
+    if (node) node.textContent = total + ' ' + noun + ' ditampilkan';
+  }
+
+  function debounce(fn, delay = 300) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), delay);
+    };
+  }
+
+  // ------------------------------ Modal ------------------------------
+
+  function openModal(html) {
+    document.getElementById('modalBox').innerHTML = html;
+    document.getElementById('modal').classList.remove('hidden');
+    const first = document.querySelector('#modalBox input, #modalBox select');
+    if (first) first.focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modalBox').innerHTML = '';
+  }
+
+  document.getElementById('modal').addEventListener('click', (event) => {
+    if (event.target.id === 'modal') closeModal();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeModal();
+  });
+
+  // ------------------------------ Tab ------------------------------
+
+  document.querySelectorAll('.tab-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((other) => other.classList.remove('is-active'));
+      button.classList.add('is-active');
+
+      document.querySelectorAll('.panel').forEach((panel) => panel.classList.remove('is-active'));
+      document.getElementById('tab-' + button.dataset.tab).classList.add('is-active');
+
+      if (button.dataset.tab === 'loans') {
+        loadLoanOptions();
+        loadLoans();
+      }
+      if (button.dataset.tab === 'reports') loadReport();
+    });
+  });
+
+  // ------------------------------ Katalog Buku ------------------------------
+
+  async function loadCategories() {
+    const result = await api('/api/books/categories');
+    const select = document.getElementById('bookCategoryFilter');
+    const current = select.value;
+    select.innerHTML = '<option value="">Semua kategori</option>' +
+        result.data.map((category) => '<option value="' + esc(category) + '">' + esc(category) + '</option>').join('');
+    select.value = current;
+
+    const datalist = document.getElementById('categoryOptions');
+    if (datalist) {
+      datalist.innerHTML = result.data.map((category) => '<option value="' + esc(category) + '"></option>').join('');
+    }
+  }
+
+  async function loadBookOptions() {
+    const result = await api('/api/books');
+    state.bookOptions = result.data;
+  }
+
+  async function loadBooks() {
+    const params = new URLSearchParams({
+      q: document.getElementById('bookSearch').value.trim(),
+      category: document.getElementById('bookCategoryFilter').value,
+      availability: document.getElementById('bookAvailabilityFilter').value
+    });
+    const result = await api('/api/books?' + params.toString());
+    state.books = result.data;
+    renderBooks();
+  }
+
+  function renderBooks() {
+    const tbody = document.getElementById('bookTableBody');
+    setCount('bookCount', state.books.length, 'judul');
+    if (!state.books.length) {
+      tbody.innerHTML = emptyRow(5, 'Tidak ada buku yang cocok dengan pencarian ini.');
+      return;
+    }
+    tbody.innerHTML = state.books.map((book) => {
+      const available = Number(book.available || 0);
+      const stock = Number(book.stock || 0);
+      return '<tr>' +
+        '<td class="cell-book"><span class="spine" style="background:' + spineColor(book.category) + '"></span>' +
+        '<div><p class="title">' + esc(book.title) + '</p>' +
+        '<p class="meta">' + esc(book.author) + '</p></div></td>' +
+        '<td><span class="tag">' + esc(book.category || 'Umum') + '</span></td>' +
+        '<td class="num">' + (book.year ? esc(book.year) : '—') + '</td>' +
+        '<td><span class="stock ' + (available > 0 ? 'in' : 'out') + '">' + available +
+        '<span class="sep">/</span>' + stock + '</span></td>' +
+        '<td class="actions">' +
+        '<button data-action="edit-book" data-id="' + esc(book.id) + '" class="btn btn-ghost btn-sm">Ubah</button>' +
+        '<button data-action="delete-book" data-id="' + esc(book.id) + '" class="btn btn-quiet btn-sm">Hapus</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+
+  function bookForm(book) {
+    const isEdit = Boolean(book);
+    return '<p class="kicker">' + (isEdit ? 'Sunting katalog' : 'Entri baru') + '</p>' +
+      '<h2>' + (isEdit ? 'Ubah buku' : 'Tambah buku') + '</h2>' +
+      '<form id="bookForm">' +
+      '<div class="form-row"><label class="field-label">Judul</label>' +
+      '<input name="title" required placeholder="Judul lengkap" value="' + esc(book ? book.title : '') + '"></div>' +
+      '<div class="form-row"><label class="field-label">Penulis</label>' +
+      '<input name="author" required placeholder="Nama penulis" value="' + esc(book ? book.author : '') + '"></div>' +
+      '<div class="grid-2">' +
+      '<div class="form-row"><label class="field-label">Tahun terbit</label>' +
+      '<input name="year" type="number" min="1000" max="2100" placeholder="2020" value="' + esc(book && book.year ? book.year : '') + '"></div>' +
+      '<div class="form-row"><label class="field-label">Jumlah eksemplar</label>' +
+      '<input name="stock" type="number" min="1" required value="' + esc(book ? book.stock : 1) + '"></div>' +
+      '</div>' +
+      '<div class="form-row"><label class="field-label">Kategori</label>' +
+      '<input name="category" list="categoryOptions" placeholder="Umum" value="' + esc(book ? book.category || '' : '') + '">' +
+      '<datalist id="categoryOptions"></datalist></div>' +
+      '<input type="hidden" name="id" value="' + esc(book ? book.id : '') + '">' +
+      '<div class="form-actions">' +
+      '<button type="button" data-action="close-modal" class="btn btn-quiet">Batal</button>' +
+      '<button type="submit" class="btn btn-primary">Simpan</button>' +
+      '</div></form>';
+  }
+
+  function openBookModal(book) {
+    openModal(bookForm(book));
+    loadCategories().catch(() => undefined);
+
+    document.getElementById('bookForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        title: form.title.value.trim(),
+        author: form.author.value.trim(),
+        year: form.year.value,
+        category: form.category.value.trim(),
+        stock: form.stock.value
+      };
+      const id = form.id.value;
+      try {
+        const result = id
+            ? await api('/api/books/' + id, { method: 'PUT', body: JSON.stringify(payload) })
+            : await api('/api/books', { method: 'POST', body: JSON.stringify(payload) });
+        showToast(result.message);
+        closeModal();
+        await Promise.all([loadBooks(), loadCategories(), loadBookOptions()]);
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+  }
+
+  document.getElementById('btnAddBook').addEventListener('click', () => openBookModal(null));
+
+  document.getElementById('bookTableBody').addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const id = button.dataset.id;
+
+    if (button.dataset.action === 'edit-book') {
+      const book = state.books.find((item) => item.id === id);
+      if (book) openBookModal(book);
+      return;
+    }
+
+    if (button.dataset.action === 'delete-book') {
+      const book = state.books.find((item) => item.id === id);
+      if (!confirm('Hapus buku "' + (book ? book.title : '') + '" dari katalog?')) return;
+      try {
+        const result = await api('/api/books/' + id, { method: 'DELETE' });
+        showToast(result.message);
+        await Promise.all([loadBooks(), loadCategories(), loadBookOptions()]);
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+  });
+
+  // ------------------------------ Anggota ------------------------------
+
+  async function loadMemberOptions() {
+    const result = await api('/api/members');
+    state.memberOptions = result.data;
+  }
+
+  async function loadMembers() {
+    const params = new URLSearchParams({
+      q: document.getElementById('memberSearch').value.trim(),
+      type: document.getElementById('memberTypeFilter').value
+    });
+    const result = await api('/api/members?' + params.toString());
+    state.members = result.data;
+    renderMembers();
+  }
+
+  function renderMembers() {
+    const tbody = document.getElementById('memberTableBody');
+    setCount('memberCount', state.members.length, 'anggota');
+    if (!state.members.length) {
+      tbody.innerHTML = emptyRow(5, 'Belum ada anggota yang terdaftar.');
+      return;
+    }
+    tbody.innerHTML = state.members.map((member) => {
+      const contact = [member.email, member.phone].filter(Boolean).map(esc).join('<br>') || '—';
+      return '<tr>' +
+        '<td><p class="title" style="font-family:var(--serif);font-size:16px;font-weight:500;margin:0">' + esc(member.name) + '</p>' +
+        '<p class="cell-book meta" style="display:block;margin:2px 0 0">' + (member.address ? esc(member.address) : '—') + '</p></td>' +
+        '<td class="num">' + esc(member.code) + '</td>' +
+        '<td><span class="tag">' + esc(member.type) + '</span></td>' +
+        '<td class="num" style="font-size:11.5px;line-height:1.6">' + contact + '</td>' +
+        '<td class="actions">' +
+        '<button data-action="edit-member" data-id="' + esc(member.id) + '" class="btn btn-ghost btn-sm">Ubah</button>' +
+        '<button data-action="delete-member" data-id="' + esc(member.id) + '" class="btn btn-quiet btn-sm">Hapus</button>' +
+        '</td></tr>';
+    }).join('');
+  }
+
+  function openMemberModal(member) {
+    const isEdit = Boolean(member);
+    openModal(
+      '<p class="kicker">' + (isEdit ? 'Sunting anggota' : 'Pendaftaran') + '</p>' +
+      '<h2>' + (isEdit ? 'Ubah data anggota' : 'Anggota baru') + '</h2>' +
+      '<form id="memberForm">' +
+      '<div class="form-row"><label class="field-label">Nama lengkap</label>' +
+      '<input name="name" required placeholder="Nama sesuai kartu identitas" value="' + esc(member ? member.name : '') + '"></div>' +
+      '<div class="grid-2">' +
+      '<div class="form-row"><label class="field-label">No. anggota</label>' +
+      '<input name="code" placeholder="Otomatis" value="' + esc(member ? member.code : '') + '"></div>' +
+      '<div class="form-row"><label class="field-label">Tipe</label>' +
+      '<select name="type">' +
+      ['Siswa', 'Mahasiswa', 'Umum'].map((type) => {
+        const selected = member && member.type === type ? ' selected' : (!member && type === 'Umum' ? ' selected' : '');
+        return '<option value="' + type + '"' + selected + '>' + type + '</option>';
+      }).join('') +
+      '</select></div></div>' +
+      '<div class="grid-2">' +
+      '<div class="form-row"><label class="field-label">Email</label>' +
+      '<input name="email" type="email" placeholder="nama@contoh.id" value="' + esc(member ? member.email : '') + '"></div>' +
+      '<div class="form-row"><label class="field-label">No. telepon</label>' +
+      '<input name="phone" placeholder="08xx xxxx xxxx" value="' + esc(member ? member.phone : '') + '"></div>' +
+      '</div>' +
+      '<div class="form-row"><label class="field-label">Alamat</label>' +
+      '<textarea name="address" rows="2" placeholder="Alamat tinggal">' + esc(member ? member.address : '') + '</textarea></div>' +
+      '<input type="hidden" name="id" value="' + esc(member ? member.id : '') + '">' +
+      '<div class="form-actions">' +
+      '<button type="button" data-action="close-modal" class="btn btn-quiet">Batal</button>' +
+      '<button type="submit" class="btn btn-primary">Simpan</button>' +
+      '</div></form>'
+    );
+
+    document.getElementById('memberForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.target;
+      const payload = {
+        name: form.name.value.trim(),
+        code: form.code.value.trim(),
+        type: form.type.value,
+        email: form.email.value.trim(),
+        phone: form.phone.value.trim(),
+        address: form.address.value.trim()
+      };
+      const id = form.id.value;
+      try {
+        const result = id
+            ? await api('/api/members/' + id, { method: 'PUT', body: JSON.stringify(payload) })
+            : await api('/api/members', { method: 'POST', body: JSON.stringify(payload) });
+        showToast(result.message);
+        closeModal();
+        await Promise.all([loadMembers(), loadMemberOptions()]);
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    });
+  }
+
+  document.getElementById('btnAddMember').addEventListener('click', () => openMemberModal(null));
+
+  document.getElementById('memberTableBody').addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const id = button.dataset.id;
+
+    if (button.dataset.action === 'edit-member') {
+      const member = state.members.find((item) => item.id === id);
+      if (member) openMemberModal(member);
+      return;
+    }
+
+    if (button.dataset.action === 'delete-member') {
+      const member = state.members.find((item) => item.id === id);
+      if (!confirm('Hapus anggota "' + (member ? member.name : '') + '"?')) return;
+      try {
+        const result = await api('/api/members/' + id, { method: 'DELETE' });
+        showToast(result.message);
+        await Promise.all([loadMembers(), loadMemberOptions()]);
+      } catch (error) {
+        showToast(error.message, 'error');
+      }
+    }
+  });
+
+  // ------------------------------ Peminjaman ------------------------------
+
+  async function loadLoanOptions() {
+    try {
+      await Promise.all([loadBookOptions(), loadMemberOptions()]);
+      const bookSelect = document.getElementById('loanBook');
+      const memberSelect = document.getElementById('loanMember');
+
+      const availableBooks = state.bookOptions.filter((book) => Number(book.available || 0) > 0);
+      bookSelect.innerHTML = availableBooks.length
+          ? '<option value="">— Pilih buku —</option>' + availableBooks.map((book) =>
+              '<option value="' + esc(book.id) + '">' + esc(book.title) + ' — ' + esc(book.author) +
+              ' (' + book.available + '/' + book.stock + ')</option>').join('')
+          : '<option value="">Tidak ada buku dengan stok tersedia</option>';
+
+      memberSelect.innerHTML = state.memberOptions.length
+          ? '<option value="">— Pilih anggota —</option>' + state.memberOptions.map((member) =>
+              '<option value="' + esc(member.id) + '">' + esc(member.name) + ' (' + esc(member.code) + ' · ' + esc(member.type) + ')</option>').join('')
+          : '<option value="">Belum ada anggota terdaftar</option>';
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  }
+
+  function updateDuePreview() {
+    const days = Number(document.getElementById('loanDays').value || state.settings.loanDays);
+    const due = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    document.getElementById('loanDuePreview').innerHTML =
+      'Jatuh tempo <strong>' + due.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' }) +
+      '</strong> &nbsp;·&nbsp; denda ' + rupiah(state.settings.finePerDay) + ' per hari';
+  }
+
+  document.getElementById('loanDays').addEventListener('input', updateDuePreview);
+
+  document.getElementById('loanForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const payload = {
+      bookId: document.getElementById('loanBook').value,
+      memberId: document.getElementById('loanMember').value,
+      days: document.getElementById('loanDays').value
+    };
+    if (!payload.bookId || !payload.memberId) {
+      showToast('Pilih buku dan anggota terlebih dahulu.', 'error');
+      return;
+    }
+    try {
+      const result = await api('/api/loans', { method: 'POST', body: JSON.stringify(payload) });
+      showToast(result.message);
+      document.getElementById('loanForm').reset();
+      document.getElementById('loanDays').value = state.settings.loanDays;
+      updateDuePreview();
+      await Promise.all([loadLoanOptions(), loadLoans(), loadBooks()]);
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  });
+
+  async function loadLoans() {
+    const params = new URLSearchParams({
+      q: document.getElementById('loanSearch').value.trim(),
+      status: document.getElementById('loanStatusFilter').value
+    });
+    const result = await api('/api/loans?' + params.toString());
+    state.loans = result.data;
+    if (result.settings) {
+      state.settings = result.settings;
+      updateDuePreview();
+    }
+    renderLoans();
+  }
+
+  function renderLoans() {
+    const tbody = document.getElementById('loanTableBody');
+    setCount('loanCount', state.loans.length, 'transaksi');
+    if (!state.loans.length) {
+      tbody.innerHTML = emptyRow(7, 'Belum ada transaksi yang cocok.');
+      return;
+    }
+    tbody.innerHTML = state.loans.map((loan) => {
+      let status = '<span class="stamp stamp-open">Dipinjam</span>';
+      if (loan.status === 'returned') {
+        status = '<span class="stamp stamp-done">Kembali ' + formatDate(loan.returnedAt) + '</span>';
+      } else if (loan.isOverdue) {
+        status = '<span class="stamp stamp-late">Lewat ' + loan.lateDays + ' hari</span>';
+      }
+
+      const fine = loan.fine > 0
+          ? '<span class="money due">' + rupiah(loan.fine) + '</span>'
+          : '<span class="money zero">—</span>';
+
+      const action = loan.status === 'borrowed'
+          ? '<button data-action="return-loan" data-id="' + esc(loan.id) + '" class="btn btn-ghost btn-sm">Kembalikan</button>'
+          : '<span class="num" style="font-size:10px;letter-spacing:.14em;text-transform:uppercase">Selesai</span>';
+
+      return '<tr>' +
+        '<td class="cell-book"><span class="spine" style="background:' + spineColor(loan.bookCategory || loan.bookTitle) + '"></span>' +
+        '<div><p class="title">' + esc(loan.bookTitle) + '</p>' +
+        '<p class="meta">' + esc(loan.bookAuthor || '') + '</p></div></td>' +
+        '<td><p style="margin:0">' + esc(loan.memberName) + '</p>' +
+        '<p class="num" style="margin:2px 0 0;font-size:11px">' + esc(loan.memberCode || '') + '</p></td>' +
+        '<td class="num">' + formatDate(loan.borrowedAt) + '</td>' +
+        '<td class="num">' + formatDate(loan.dueAt) + '</td>' +
+        '<td>' + status + '</td>' +
+        '<td>' + fine + '</td>' +
+        '<td class="actions">' + action + '</td></tr>';
+    }).join('');
+  }
+
+  document.getElementById('loanTableBody').addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action="return-loan"]');
+    if (!button) return;
+    const loan = state.loans.find((item) => item.id === button.dataset.id);
+    if (!loan) return;
+    if (!confirm('Catat pengembalian "' + loan.bookTitle + '" oleh ' + loan.memberName + '?')) return;
+    try {
+      const result = await api('/api/loans/' + loan.id + '/return', { method: 'POST', body: '{}' });
+      showToast(result.message, result.data.fine > 0 ? 'info' : 'success');
+      await Promise.all([loadLoans(), loadLoanOptions(), loadBooks()]);
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  });
+
+  // ------------------------------ Laporan ------------------------------
+
+  async function loadReport() {
+    try {
+      const result = await api('/api/reports');
+      const data = result.data;
+      state.settings = result.settings || state.settings;
+      document.getElementById('reportMeta').textContent =
+          'Denda ' + rupiah(state.settings.finePerDay) + ' per hari · batas pinjam standar ' +
+          state.settings.loanDays + ' hari, maksimal ' + state.settings.maxLoanDays + ' hari.';
+
+      const cards = [
+        { label: 'Judul buku', value: data.summary.totalTitles, hint: data.summary.totalCopies + ' eksemplar' },
+        { label: 'Tersedia', value: data.summary.availableCopies, hint: data.summary.borrowedCopies + ' sedang keluar' },
+        { label: 'Anggota', value: data.summary.totalMembers, hint: data.summary.activeLoans + ' pinjaman aktif' },
+        { label: 'Terlambat', value: data.summary.overdueLoans, hint: 'Berjalan ' + rupiah(data.summary.outstandingFines), wine: true },
+        { label: 'Transaksi', value: data.summary.activeLoans + data.summary.returnedLoans, hint: data.summary.returnedLoans + ' selesai' },
+        { label: 'Denda terkumpul', value: rupiah(data.summary.collectedFines), hint: 'Dari pengembalian' },
+        { label: 'Denda berjalan', value: rupiah(data.summary.outstandingFines), hint: 'Belum dikembalikan' },
+        { label: 'Total denda', value: rupiah(data.summary.totalFines), hint: 'Terkumpul + berjalan', wine: true }
+      ];
+      document.getElementById('summaryCards').innerHTML = cards.map((card) =>
+        '<div class="stat"><span class="label">' + esc(card.label) + '</span>' +
+        '<p class="value' + (card.wine ? ' wine' : '') + '">' + esc(card.value) + '</p>' +
+        '<span class="hint">' + esc(card.hint) + '</span></div>').join('');
+
+      const topBody = document.getElementById('topBooksBody');
+      topBody.innerHTML = data.topBooks.length
+          ? data.topBooks.map((book, index) =>
+              '<tr><td class="num">' + String(index + 1).padStart(2, '0') + '</td>' +
+              '<td style="font-family:var(--serif);font-size:16px">' + esc(book.title) + '</td>' +
+              '<td style="color:var(--ink-soft)">' + esc(book.author) + '</td>' +
+              '<td class="num">' + book.totalLoans + '×</td>' +
+              '<td class="num">' + book.activeLoans + '</td></tr>').join('')
+          : emptyRow(5, 'Belum ada data peminjaman.');
+
+      const finesBody = document.getElementById('finesBody');
+      finesBody.innerHTML = data.fines.length
+          ? data.fines.map((fine) =>
+              '<tr><td style="font-family:var(--serif);font-size:16px">' + esc(fine.bookTitle) + '</td>' +
+              '<td>' + esc(fine.memberName) + '</td>' +
+              '<td class="num">' + formatDate(fine.dueAt) + '</td>' +
+              '<td class="num">' + fine.lateDays + ' hari</td>' +
+              '<td><span class="money due">' + rupiah(fine.fine) + '</span></td>' +
+              '<td>' + (fine.settled
+                ? '<span class="stamp stamp-done">Lunas</span>'
+                : '<span class="stamp stamp-late">Berjalan</span>') +
+              '</td></tr>').join('')
+          : emptyRow(6, 'Tidak ada denda keterlambatan tercatat.');
+
+      const maxLoans = Math.max(1, ...data.monthly.map((month) => month.loans));
+      document.getElementById('monthlyBody').innerHTML = data.monthly.map((month) =>
+        '<tr><td style="font-family:var(--serif);font-size:16px">' + esc(month.label) + '</td>' +
+        '<td><div class="barcell"><span class="bartrack"><span class="barfill" style="width:' +
+        Math.round((month.loans / maxLoans) * 100) + '%"></span></span><span class="barnum">' + month.loans + '</span></div></td>' +
+        '<td class="num">' + month.returns + '</td>' +
+        '<td class="num">' + rupiah(month.fines) + '</td></tr>').join('');
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  }
+
+  document.getElementById('btnRefreshReport').addEventListener('click', loadReport);
+
+  // ------------------------------ Filter events ------------------------------
+
+  document.getElementById('bookSearch').addEventListener('input', debounce(loadBooks));
+  document.getElementById('bookCategoryFilter').addEventListener('change', loadBooks);
+  document.getElementById('bookAvailabilityFilter').addEventListener('change', loadBooks);
+  document.getElementById('memberSearch').addEventListener('input', debounce(loadMembers));
+  document.getElementById('memberTypeFilter').addEventListener('change', loadMembers);
+  document.getElementById('loanSearch').addEventListener('input', debounce(loadLoans));
+  document.getElementById('loanStatusFilter').addEventListener('change', loadLoans);
+
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('button[data-action="close-modal"]')) closeModal();
+  });
+
+  // ------------------------------ Inisialisasi ------------------------------
+
+  (async function init() {
+    try {
+      const health = await api('/api/health');
+      if (health.settings) state.settings = health.settings;
+      if (health.storage === 'memory') {
+        const badge = document.getElementById('storageBadge');
+        badge.textContent = 'Data sementara — Firebase belum aktif';
+        badge.classList.remove('hidden');
+      }
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+
+    updateDuePreview();
+    try {
+      await Promise.all([loadBooks(), loadCategories(), loadMembers(), loadLoanOptions()]);
+    } catch (error) {
+      showToast(error.message, 'error');
+    }
+  })();
+</script>
 </body>
 </html>
